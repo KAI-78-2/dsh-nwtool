@@ -19,7 +19,7 @@ window.__ModuleLoader__.load({
     const PANEL_ID = 'nwtool'
     const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
     const PRODUCT = 'DSH-NWTool'
-    const VERSION = '1.0.0'
+    const VERSION = '1.1.0'
 
     /* ------------------------------------------------------------ */
     /* Language                                                      */

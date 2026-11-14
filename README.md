@@ -124,15 +124,36 @@ Datacom 工具；同一套能力又注册成 **20 个 Agent 工具**，模型可
 
 自检分三路，覆盖「静态 + 行为」两层：
 
-- `verify-i18n.mjs`：主机侧每条中文输出都包了 `t()`、每个 `t()` 的 key 都有英文、占位符两边一致、内联副本与 JSON 同步。
-- `verify-client-render.mjs`：以英文渲染**每一个面板**，屏幕上不允许出现任何中文——这条是「新增文案默认 i18n」的硬约束。
-- `verify-host-i18n.mjs`：16 个引擎分别在 `en` / `zh` 下各跑一遍，英文输出不得含中文（操作系统自带的网卡名等数据除外）。
+- `tests/verify-i18n.mjs`：主机侧每条中文输出都包了 `t()`、每个 `t()` 的 key 都有英文、占位符两边一致、内联副本与 JSON 同步。
+- `tests/verify-client-render.mjs`：以英文渲染**每一个面板**，屏幕上不允许出现任何中文——这条是「新增文案默认 i18n」的硬约束。
+- `tests/verify-host-i18n.mjs`：16 个引擎分别在 `en` / `zh` 下各跑一遍，英文输出不得含中文（操作系统自带的网卡名等数据除外）。
 
-> 这些自检脚本在**开发工作区**里，不随插件发布：它们以插件目录为基准读取 `client.js`、`host/*.js`
-> 与 `locale/messages.json`，跑法是在工作区根目录执行 `node verify-xxx.mjs`。共 24 个，其中 22 个
-> 离线（含面板渲染、VT 引擎、终端生命周期、浮窗、共享弹层、导航收起等行为测试），另外两个要连到
-> 正在运行的 GUI：`verify-term-live.mjs`（真机终端通道）与 `verify-api-probe.mjs`（单工具手工探测）。
-> 插件包内只带 `scripts/sync-messages.mjs`（同步词典，属于构建步骤）。
+## 自检
+
+24 个脚本都在 [`tests/`](tests) 里，一条命令跑完（从任何目录执行都可以）：
+
+```bash
+node tests/run-all.mjs              # 23 个离线检查
+NWTOOL_PORT=<GUI 端口> node tests/run-all.mjs --live   # 另加真机终端通道
+```
+
+| 脚本 | 检查什么 |
+| --- | --- |
+| `verify-encoding` | 无 BOM、全 LF、JSON 可解析、版本与注册名一致 |
+| `verify-css` | 样式表括号/回退/配色规范，用到的 class 都有定义 |
+| `verify-client-render` | 每个面板都能渲染；英文模式下不许出现中文 |
+| `verify-i18n` / `verify-host-i18n` | 词典完整性、占位符；16 个引擎中英双语都干净 |
+| `verify-vt` | 自研 VT 引擎：光标、颜色、回滚、备用屏、宽字符 |
+| `verify-term*` | 会话生命周期、历史重放、多标签、共享、浮窗、授权 |
+| `verify-about` / `verify-nav` | 使用说明面板、导航收起与分类图标 |
+| `verify-host-*` / `verify-newtools` / `verify-monitor` / `verify-diagram` / `verify-topo-ui` | 各引擎与拓扑、监控、命令行工具的逻辑 |
+| `verify-term-live` | 真机终端通道（需要 GUI 在跑，`--live` 才跑） |
+
+`tests/probe-tool.mjs` 是手动探测单个工具的小工具（`node tests/probe-tool.mjs ping host=1.1.1.1`），
+不参与 `run-all`。
+
+> 这些脚本**不会**被装进用户环境：`package.json` 的 `files` 只列了运行期需要的文件，
+> 而 `tests/` 不在其中——走插件页安装（pnpm 打包）时不会下载它们。git clone 或下载源码可以看到。
 
 
 ## 工具清单
@@ -214,6 +235,7 @@ host/tools.js      Agent 工具定义
 locale/messages.json  英文词典（中文为源语言）
 scripts/sync-messages.mjs  把词典内联进 client.js
 scripts/check-profile.mjs   启动前自检：profile 清单有没有 BOM、依赖有没有装丢
+tests/             24 个自检脚本 + run-all.mjs（不随插件安装，见「自检」）
 client.js          侧边栏图标 + 主面板 + 框架浮层（共享状态条、终端浮窗），纯 React.createElement，无构建步骤
 LICENSE            MIT
 ```

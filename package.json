@@ -1,6 +1,6 @@
 {
   "name": "dsh-nwtool",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "Network operations toolbox for DeepSeek Harness: ping, tcping, traceroute, mtr, scanning, DNS, HTTP, Datacom device operations.",
@@ -10,6 +10,9 @@
   "homepage": "https://github.com/KAI-78-2/dsh-nwtool#readme",
   "bugs": { "url": "https://github.com/KAI-78-2/dsh-nwtool/issues" },
   "keywords": ["dsh-plugin", "deepseek-harness", "network-tools", "datacom", "snmp", "ssh", "telnet"],
+  "scripts": {
+    "test": "node tests/run-all.mjs"
+  },
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
