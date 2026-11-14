@@ -19,7 +19,7 @@ Datacom 工具；同一套能力又注册成 **20 个 Agent 工具**，模型可
 2. 填 `github:KAI-78-2/dsh-nwtool`（完整地址 `https://github.com/KAI-78-2/dsh-nwtool.git` 亦可）。
 3. **Install**，装完点 **Enable now**，侧边栏出现「网络运维工具箱」。
 
-固定版本：`github:KAI-78-2/dsh-nwtool#v1.0.0`。命令行（web profile）：
+固定版本：`github:KAI-78-2/dsh-nwtool#v1.1.0`（旧版：`#v1.0.0`）。命令行（web profile）：
 `dsh plugin --profile web add github:KAI-78-2/dsh-nwtool`；desktop profile 请用插件页面。
 
 ## 界面
