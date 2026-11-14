@@ -1095,6 +1095,8 @@
     "回面板": "Open panel",
     "共享设置失败": "Could not change sharing",
     "关于与使用说明": "About & usage guide",
+    "展开工具列表": "Expand the tool list",
+    "收起工具列表": "Collapse the tool list",
     "工具怎么用": "How each tool works",
     "打开这个工具": "Open this tool",
     "Agent 工具": "Agent tools",
@@ -1124,6 +1126,10 @@
     "通过 SSH/Telnet 在一台或多台设备上执行一组只读命令，可把输出归档成备份。": "Run a set of read-only commands on one or more devices over SSH/Telnet, optionally archiving the output as a backup.",
     "用 SNMP v2c GET 读 SYSTEM 组，识别设备名称、描述、型号与运行时长。": "Identify devices with SNMP v2c GET on the SYSTEM group: name, description, model and uptime.",
     "查同一功能在华为 VRP/H3C Comware 与思科 IOS/NX-OS 里的等价命令。": "Look up the equivalent command across Huawei VRP / H3C Comware and Cisco IOS / NX-OS.",
-    "查看或操作你共享给 DSH 的终端会话；默认不共享，只有你明确共享的会话可用。": "See or drive a terminal session you shared with DSH. Sessions are private by default; only the ones you explicitly shared are reachable."
+    "查看或操作你共享给 DSH 的终端会话；默认不共享，只有你明确共享的会话可用。": "See or drive a terminal session you shared with DSH. Sessions are private by default; only the ones you explicitly shared are reachable.",
+    "这台设备设成「每次输入密码」：请先在工具栏填入密码，再点连接": "This device asks for a password each time: type it in the toolbar first, then connect",
+    "这台设备设成「每次输入密码」：请先在工具栏填入密码，再点重新连接": "This device asks for a password each time: type it in the toolbar first, then reconnect",
+    "请输入密码后重试": "Type the password, then try again",
+    "已连接，但还没有收到任何输出：确认密码是否正确，以及这台设备是否在等命令": "Connected, but nothing has arrived yet: check the password, and whether this device is waiting for a command"
   }
 }

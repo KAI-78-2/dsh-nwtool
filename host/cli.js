@@ -411,6 +411,10 @@ export async function openSsh(device, signal) {
       }
       args.push('-o', 'PreferredAuthentications=password,keyboard-interactive')
       args.push('-o', 'PubkeyAuthentication=no')
+    } else {
+      /* No secret to answer with: refuse to prompt, otherwise ssh waits on a
+         console prompt nobody can see and the call hangs instead of failing. */
+      args.push('-o', 'BatchMode=yes')
     }
     args.push(`${username}@${host}`)
   }

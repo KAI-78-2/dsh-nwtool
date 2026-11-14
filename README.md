@@ -1,11 +1,15 @@
 # 网络运维工具箱（dsh-nwtool）
 
-DeepSeek Harness 插件：在左侧边栏增加一个「网络运维工具箱」入口，主面板提供 20+ 个网络运维与
-Datacom 工具；同时把这些能力注册成 Agent 工具，模型可以自己调用。
+DeepSeek Harness 插件：在左侧边栏增加一个「网络运维工具箱」入口，主面板提供 **33 个**网络运维与
+Datacom 工具；同一套能力又注册成 **20 个 Agent 工具**，模型可以自己调用。
 
-- 面板：侧边栏图标 + 主面板（`sidebar.panellist` / `main` 插槽）。
+- 面板：侧边栏图标 + 主面板（`sidebar.panellist` / `main` 插槽），另有共享状态条与终端浮窗占用
+  `conversation.composer.dock` / `shell.overlay`。
 - 网络探测全部在**运行 DSH 的主机侧**执行，不受浏览器跨域限制，也不需要管理员权限。
-- 零第三方依赖：只用 Node 标准库与系统自带命令。
+- **零第三方依赖**：主机侧只 `import` Node 内置模块（`node:net`、`node:dns`、`node:crypto` 等）与
+  同目录文件；浏览器侧只 `require('react')`，那是 DSH 在加载时注入的，插件既不自带也不安装它。
+  详见[开源与许可](#开源与许可)。
+- 运行环境：随 DSH 自带的 Node（18+）运行，无需另外安装 Node 或任何运行时。
 
 ## 安装
 
@@ -27,6 +31,11 @@ Datacom 工具；同时把这些能力注册成 Agent 工具，模型可以自�
   旁边的「说明」按钮打开**关于与使用说明**：一句话介绍、运行位置与数据目录、按分组列出全部工具的
   用法要点（点任意一行直接跳到该工具），以及注册给模型的 20 个 Agent 工具及各自用途。
 - 左侧分类可折叠，折叠状态记在 `localStorage`（`nwtool.collapsed`），下次打开保持。
+  每个分类有自己的图标（Datacom 运维＝叠放的交换机、连通性＝心跳线、扫描＝雷达、域名＝地球、
+  本机＝笔记本、实用＝滑杆、诊断＝放大镜），分类标题左侧显示，收起后就是窄条里的那七个图标。
+- 整张工具列表也能收起：页头右侧的 `«` 把导航折成 52px 窄条，只留下展开按钮、七个分类图标与「说明」，
+  把宽度让给工具本身；再用 `»` 展开。窄条里点某个分类图标＝展开列表并进入该分类的第一个工具，
+  当前所在的分类会高亮。收起状态记在 `nwtool.nav.collapsed`，下次打开保持。
 - 背景是三层极光帘幕：青色 → 蓝 → 紫 → 品红的光带以 104s / 122s / 138s 缓慢漂移、
   26s 做整体明暗呼吸，全部做了重模糊与上下渐隐遮罩；调色板刻意**不含绿色**，也没有用
   `hue-rotate`（旋转色相会漂到绿色）。界面控件仍只用 `--dsw-alias-*` 变量着色。
@@ -41,8 +50,12 @@ Datacom 工具；同时把这些能力注册成 Agent 工具，模型可以自�
 `Datacom 运维 → 终端 / 设备簿` 提供一个交互式终端，用来连交换机、路由器与 Linux 主机。
 
 - **Telnet**：直接在 TCP 上自实现 RFC 854（IAC 协商、NAWS 窗口尺寸），不依赖任何外部程序。
-- **SSH**：委托本机客户端——有 PuTTY 的 `plink` 就优先用它（`-pw` 直传密码），否则用 Windows 自带的
-  OpenSSH `ssh`（通过 `SSH_ASKPASS` 传密码，主机指纹用插件自己的 `known_hosts` 做 TOFU）。
+- **SSH 不会卡在看不见的提示上**：密码统一交给 askpass 助手（`SSH_ASKPASS_REQUIRE=force`），
+  密钥/agent 模式加 `BatchMode=yes`，再加 `ConnectTimeout=10`。这样认证失败会立刻写出
+  `Permission denied` 并断开，而不是让 ssh 停在自己的控制台密码提示上——那种情况下会话是"已连接"
+  （绿点），但一个字节都不会来。
+- **静默会话提示**：连接成功 8 秒内没有任何输出时，标签下方会提示"已连接，但还没有收到任何输出"，
+  免得对着空白屏幕猜。
 - **编码可切**：传输的是原始字节，主机侧不解码；前端用 `UTF-8` 或 `GBK` 解码，所以同一个会话既能看
   Linux 的 UTF-8 输出，也能看国内交换机的 GBK 中文。切换编码只影响之后的输出。
 - **VT100/xterm 子集**：光标定位、SGR 颜色（含 256 色）、清行/清屏、插删行/字符、滚动区域、
@@ -59,6 +72,8 @@ Datacom 工具；同时把这些能力注册成 Agent 工具，模型可以自�
 - **设备簿**：名称/地址/端口/协议/用户名/认证方式，密码三选一——
   `每次输入`（不落盘）、`保存密码`（本机 `~/.dsh-nwtool/devices.json`，AES-256-GCM + 本机密钥文件加密）、
   `SSH 私钥`、`SSH agent`。
+  `每次输入` 的设备**必须先在上方密码框填入密码再点连接**：空密码会被直接拒绝并提示，
+  重连时同样要重新填（密码不落盘，自然也不会被记住）。
 - **多会话标签页**：每点一次「连接」就多一个标签，各自挂着独立的传输流。切标签只是换前台，
   后台会话照常收输出，标签自己保留整屏内容与滚动历史；切到工作区再回来会从 Host 缓冲重放
   （Host 保留最近 256 KB 原始字节），无人在看时会话仍保留 **20 分钟**，只有点 `×` 才会断开并关闭。
@@ -111,10 +126,18 @@ Datacom 工具；同时把这些能力注册成 Agent 工具，模型可以自�
 
 - `verify-i18n.mjs`：主机侧每条中文输出都包了 `t()`、每个 `t()` 的 key 都有英文、占位符两边一致、内联副本与 JSON 同步。
 - `verify-client-render.mjs`：以英文渲染**每一个面板**，屏幕上不允许出现任何中文——这条是「新增文案默认 i18n」的硬约束。
-- `verify-host-i18n.mjs`：17 个引擎分别在 `en` / `zh` 下各跑一遍，英文输出不得含中文（操作系统自带的网卡名等数据除外）。
+- `verify-host-i18n.mjs`：16 个引擎分别在 `en` / `zh` 下各跑一遍，英文输出不得含中文（操作系统自带的网卡名等数据除外）。
+
+> 这些自检脚本在**开发工作区**里，不随插件发布：它们以插件目录为基准读取 `client.js`、`host/*.js`
+> 与 `locale/messages.json`，跑法是在工作区根目录执行 `node verify-xxx.mjs`。共 24 个，其中 22 个
+> 离线（含面板渲染、VT 引擎、终端生命周期、浮窗、共享弹层、导航收起等行为测试），另外两个要连到
+> 正在运行的 GUI：`verify-term-live.mjs`（真机终端通道）与 `verify-api-probe.mjs`（单工具手工探测）。
+> 插件包内只带 `scripts/sync-messages.mjs`（同步词典，属于构建步骤）。
 
 
 ## 工具清单
+
+共 33 个，按侧边栏分组：
 
 | 分组 | 工具 | 实现要点 |
 | --- | --- | --- |
@@ -154,23 +177,31 @@ Datacom 工具；同时把这些能力注册成 Agent 工具，模型可以自�
 
 ## Agent 工具
 
+一共 20 个，Agent 可以直接调用：
+
 `nwtool_ping`、`nwtool_tcping`、`nwtool_traceroute`、`nwtool_dns`、`nwtool_http_request`、
 `nwtool_port_scan`、`nwtool_ip_scan`、`nwtool_subnet_calc`、`nwtool_sntp`、
 `nwtool_ip_geolocation`、`nwtool_local_ports`、`nwtool_arp_table`、
 `nwtool_backup_list`、`nwtool_backup_read`、`nwtool_config_search`、`nwtool_config_diff`、
-`nwtool_device_exec`、`nwtool_snmp_identify`、`nwtool_command_reference`。
+`nwtool_device_exec`、`nwtool_snmp_identify`、`nwtool_command_reference`、`nwtool_terminal`。
+
+`nwtool_terminal` 只对**用户明确共享**的终端会话生效（共享开关默认关闭），危险命令仍要在页面上放行；
+其余工具都是只读或本地计算，唯一的例外是 `nwtool_device_exec`（只读命令）与 ARP 写入（面板内，需提权）。
 
 ## 结构
 
 ```
 index.js           Host 入口：注册 HTTP 端点与 Agent 工具
 host/util.js       IPv4 运算、并发池、进程执行
+host/i18n.js       主机侧翻译与 AsyncLocalStorage 语言上下文
 host/data.js       公共 DNS 列表、OUI 子集、VRP/IOS 命令表、端口名
 host/net.js        ICMP/TCP 探测、traceroute、MTR、扫描、WOL、网卡、测速、诊断
 host/dns.js        DNS 报文编解码、dig、公共 DNS 测速、WHOIS/RDAP
 host/http.js       HTTP 请求引擎
 host/cli.js        Telnet 客户端、SSH 子进程、设备会话与分页处理
 host/term.js       交互终端：设备簿（分组）、密码加密存储、Telnet/SSH 会话注册表（无人观看时保留 20 分钟）
+host/history.js    会话的 256 KB 字节环形缓冲，供重新接上时重放
+host/transcript.js 会话转录与模型命令审计（30 天 / 128 MB 自动清理，密码类字段打码）
 host/sntp.js       SNTP 取时（UDP 123），四时间戳算偏移与往返时延
 host/geo.js        IP 归属地：多服务回退，内网地址本地判断
 host/local.js      本机套接字表（netstat/ss）与 ARP / 邻居表读写
@@ -180,7 +211,11 @@ host/datacom.js    备份归档、配置 diff、SNMP、命令速查、批量执�
 host/engine.js     面板与 Agent 共用的工具调度表
 host/api.js        POST /nwtool/api，NDJSON 流式事件
 host/tools.js      Agent 工具定义
+locale/messages.json  英文词典（中文为源语言）
+scripts/sync-messages.mjs  把词典内联进 client.js
+scripts/check-profile.mjs   启动前自检：profile 清单有没有 BOM、依赖有没有装丢
 client.js          侧边栏图标 + 主面板 + 框架浮层（共享状态条、终端浮窗），纯 React.createElement，无构建步骤
+LICENSE            MIT
 ```
 
 面板与 Host 之间只有一条通道：`POST /nwtool/api`，请求体 `{op:'run', tool, params}`，
@@ -206,19 +241,61 @@ client.js          侧边栏图标 + 主面板 + 框架浮层（共享状态条�
   （`api.macvendors.com`）。
 - **中间跳 RTT 依赖系统 traceroute**：Windows 的 `ping` 对 TTL 超时回复不给时延，因此
   traceroute/MTR 使用 `tracert`，它才提供每跳 RTT。
-- **⑤ 上下文直读只能走剪贴板**：DSH 没有向已有输入框注入文本的插件接口，所以是
+- **发送给 DSH 的配置只能走剪贴板**：DSH 没有向已有输入框注入文本的插件接口，所以是
   「复制提示词 / 复制并新建会话」。
+
+## 故障排查
+
+### 启动瞬间崩溃：`Unexpected token '﻿'`
+
+```
+DesktopHostFatalError: Unexpected token '﻿', "﻿{
+  "name"... is not valid JSON
+    at readProfileManifest (.../dsh-app-boot/lib/index.js)
+```
+
+这不是插件的问题，但会让 DSH 起不来：`~/.dsh/profiles/<名字>/package.json` 被存成了
+**UTF-8 带 BOM**。主机在加载任何插件之前就用 `JSON.parse` 读这个文件，而 `JSON.parse`
+不接受开头的 U+FEFF。DSH 自己写这个文件时不会加 BOM——只在用编辑器/`Set-Content` 手工改过它
+（比如手动加插件、改包名）之后才会出现。
+
+排查与修复：
+
+```bash
+node scripts/check-profile.mjs          # 只检查，指出是哪个文件、哪一行
+node scripts/check-profile.mjs --fix    # 去掉 BOM（只删 3 个字节，其余内容不动）
+```
+
+脚本同时会检查清单里声明的依赖是否真的在 `node_modules` 里——手工 `link:` 后指向不存在的目录，
+同样会让下次启动失败。**在任何手工改动 `~/.dsh/profiles/*/package.json` 之后、重启之前跑一遍。**
+
+保存这类文件时请用「UTF-8（无 BOM）」；PowerShell 5.1 的 `Set-Content` / `Out-File` 默认带 BOM，
+`pwsh 7`、VS Code 默认不带。
 
 ## 安全说明
 
 - 端点 `/nwtool/api` 只监听本机 DSH 的 Web 服务，**没有额外鉴权**：任何能在该端口发起请求的
   本机进程都可以调用这些网络能力（与浏览器同源页面一致）。请勿把 DSH Web 端口暴露到公网。
-- 设备密码只在内存中使用，不落盘、不写日志；配置备份存放在 `~/.dsh-nwtool/backups`，
-  已保存的唤醒设备存放在 `~/.dsh-nwtool/wol-devices.json`。
+- **设备密码**：默认只在内存中使用（`每次输入`），不落盘、不写日志。选择 `保存密码` 时，密码用
+  AES-256-GCM 加密后存进 `~/.dsh-nwtool/devices.json`，密钥在同目录的 `secret.key`。这能防止
+  `devices.json` 被拷走后直接读出密码，但**挡不住以同一用户身份运行的代码**（它也能读到密钥）。
+- **终端转录**：每个终端会话都会在 `~/.dsh-nwtool/term/` 落一份文本转录，保留 30 天、总量上限
+  128 MB，超限自动清理；`password` / `secret` / `community` 一类的赋值会被打码成 `****`。
+  模型代你输入的命令另外记在 `agent-YYYYMMDD.log`，便于事后核对。
+- 配置文件备份存放在 `~/.dsh-nwtool/backups`，已保存的唤醒设备存放在 `~/.dsh-nwtool/wol-devices.json`。
 
 ## 开源与许可
 
-本插件为原创实现，**没有引入任何第三方 npm 依赖**，因此不承担第三方代码的分发义务。
-它调用的是用户机器上已有的可执行文件（`ping`、`tracert`、`ssh`、`plink`、`iperf3`），
-这些程序各自遵循其自身许可证。在线数据来源：RDAP（各注册局公开接口）、
-`api.macvendors.com`（厂商查询）、`myip.ipip.net` / `api.ipify.org` / `ipinfo.io`（公网 IP）。
+MIT，见 [LICENSE](LICENSE)。
+
+**没有引入任何第三方 npm 依赖**——`package.json` 里没有 `dependencies` / `devDependencies`，
+插件目录里也没有 `node_modules`：它不安装任何东西，也没有构建步骤。逐项说明「零依赖」的边界：
+
+| 东西 | 是否随插件分发 | 说明 |
+| --- | --- | --- |
+| Node 内置模块 | 否 | 只用 `node:net`、`node:dgram`、`node:dns`、`node:fs`、`node:crypto`、`node:child_process`、`node:os`、`node:path`、`node:url`、`node:async_hooks`，由 DSH 自带运行时提供 |
+| `react` | 否 | 浏览器侧唯一的外部模块，由 DSH 在 `__ModuleLoader__` 里注入；插件不打包、不安装、不锁定版本 |
+| 系统命令 | 否 | `ping`、`tracert`/`traceroute`、`netstat`/`ss`、`arp`、`ssh`、`plink`、`iperf3` 都是用户机器上已有的程序，各自遵循其自身许可证；缺了某个只影响对应工具 |
+| 在线数据源 | 否 | RDAP（各注册局公开接口）、`api.macvendors.com`（厂商查询）、`myip.ipip.net` / `api.ipify.org` / `ipinfo.io`（公网 IP） |
+
+因此本插件的代码全部为原创实现，不承担第三方代码的分发义务；但它调用的上述外部程序并非本插件所有。

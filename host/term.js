@@ -541,35 +541,61 @@ async function writeAskpass() {
   return file
 }
 
-async function connectSsh(device, password, size) {
-  const client = await sshClient()
+/**
+ * How OpenSSH is invoked for a device.
+ *
+ * The rule that matters: **never let ssh fall back to its own console prompt**.
+ * With `stdin` a pipe and no askpass, `ssh` blocks forever on a prompt that
+ * never reaches us — the session looks connected (green dot) while the screen
+ * stays empty, because not a single byte is produced. So a password attempt
+ * always goes through the askpass helper (an empty password simply fails
+ * authentication), and when there is nothing to answer with, `BatchMode=yes`
+ * makes ssh fail fast instead of waiting.
+ */
+export function sshInvocation(device, client, password) {
   const args = []
-  const env = { ...process.env }
+  const env = {}
+  const secret = String(password ?? '')
+  const passwordAuth = device.authMode !== 'key' && device.authMode !== 'agent'
+  const useAskpass = passwordAuth || Boolean(secret)
 
   if (client.kind === 'plink') {
-    args.push('-ssh', '-P', String(device.port), '-t')
+    args.push('-ssh', '-P', String(device.port), '-t', '-batch')
     if (device.username) args.push('-l', device.username)
     if (device.authMode === 'key') args.push('-i', device.keyPath)
-    if (password && device.authMode !== 'key' && device.authMode !== 'agent') args.push('-pw', password)
-    args.push('-batch', device.host)
-  } else {
-    args.push('-tt', '-p', String(device.port))
-    if (device.username) args.push('-l', device.username)
-    if (device.authMode === 'key') args.push('-i', device.keyPath)
-    args.push(
-      '-o', 'StrictHostKeyChecking=accept-new',
-      '-o', `UserKnownHostsFile=${KNOWN_HOSTS_FILE}`,
-      '-o', 'ServerAliveInterval=30',
-      '-o', 'NumberOfPasswordPrompts=1',
-    )
-    if (password && device.authMode !== 'key' && device.authMode !== 'agent') {
-      const askpass = await writeAskpass()
-      env.SSH_ASKPASS = askpass
-      env.SSH_ASKPASS_REQUIRE = 'force'
-      env.NWTOOL_SSH_PASSWORD = password
-    }
+    if (secret && passwordAuth) args.push('-pw', secret)
     args.push(device.host)
+    return { args, env, useAskpass: false }
   }
+
+  args.push('-tt', '-p', String(device.port))
+  if (device.username) args.push('-l', device.username)
+  if (device.authMode === 'key') args.push('-i', device.keyPath)
+  args.push(
+    '-o', 'StrictHostKeyChecking=accept-new',
+    '-o', `UserKnownHostsFile=${KNOWN_HOSTS_FILE}`,
+    '-o', 'ServerAliveInterval=30',
+    '-o', 'NumberOfPasswordPrompts=1',
+    '-o', 'ConnectTimeout=10',
+  )
+  if (!useAskpass) args.push('-o', 'BatchMode=yes')
+  args.push(device.host)
+  return { args, env, useAskpass }
+}
+
+async function connectSsh(device, password, size) {
+  const client = await sshClient()
+  const invocation = sshInvocation(device, client, password)
+  const env = { ...process.env, ...invocation.env }
+
+  if (invocation.useAskpass) {
+    const askpass = await writeAskpass()
+    env.SSH_ASKPASS = askpass
+    env.SSH_ASKPASS_REQUIRE = 'force'
+    env.NWTOOL_SSH_PASSWORD = String(password ?? '')
+  }
+
+  const args = invocation.args
 
   const child = spawn(client.bin, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -938,6 +964,11 @@ export async function startSession(entry) {
       socket.on('error', () => session.finish('error'))
     } else {
       const password = await resolveSecret(entry.device, entry.password)
+      /* Dialling without the password the user said they would type only ends
+         in a rejected login (or, worse, a console prompt nobody can see). */
+      if (entry.device.authMode === 'prompt' && !password) {
+        throw new Error(t('没有输入密码：这台设备设成「每次输入密码」，请先在工具栏填入密码再连接'))
+      }
       const { child } = await connectSsh(entry.device, password, { cols: entry.cols, rows: entry.rows })
       session.child = child
       child.stdout.on('data', (chunk) => session.feed(chunk))

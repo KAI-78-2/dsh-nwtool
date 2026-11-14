@@ -1130,6 +1130,8 @@ window.__ModuleLoader__.load({
         "回面板": "Open panel",
         "共享设置失败": "Could not change sharing",
         "关于与使用说明": "About & usage guide",
+        "展开工具列表": "Expand the tool list",
+        "收起工具列表": "Collapse the tool list",
         "工具怎么用": "How each tool works",
         "打开这个工具": "Open this tool",
         "Agent 工具": "Agent tools",
@@ -1159,7 +1161,11 @@ window.__ModuleLoader__.load({
         "通过 SSH/Telnet 在一台或多台设备上执行一组只读命令，可把输出归档成备份。": "Run a set of read-only commands on one or more devices over SSH/Telnet, optionally archiving the output as a backup.",
         "用 SNMP v2c GET 读 SYSTEM 组，识别设备名称、描述、型号与运行时长。": "Identify devices with SNMP v2c GET on the SYSTEM group: name, description, model and uptime.",
         "查同一功能在华为 VRP/H3C Comware 与思科 IOS/NX-OS 里的等价命令。": "Look up the equivalent command across Huawei VRP / H3C Comware and Cisco IOS / NX-OS.",
-        "查看或操作你共享给 DSH 的终端会话；默认不共享，只有你明确共享的会话可用。": "See or drive a terminal session you shared with DSH. Sessions are private by default; only the ones you explicitly shared are reachable."
+        "查看或操作你共享给 DSH 的终端会话；默认不共享，只有你明确共享的会话可用。": "See or drive a terminal session you shared with DSH. Sessions are private by default; only the ones you explicitly shared are reachable.",
+        "这台设备设成「每次输入密码」：请先在工具栏填入密码，再点连接": "This device asks for a password each time: type it in the toolbar first, then connect",
+        "这台设备设成「每次输入密码」：请先在工具栏填入密码，再点重新连接": "This device asks for a password each time: type it in the toolbar first, then reconnect",
+        "请输入密码后重试": "Type the password, then try again",
+        "已连接，但还没有收到任何输出：确认密码是否正确，以及这台设备是否在等命令": "Connected, but nothing has arrived yet: check the password, and whether this device is waiting for a command"
       }
     }
     /* i18n:messages:end */
@@ -1469,6 +1475,86 @@ window.__ModuleLoader__.load({
 }
 .nwt-nav-about:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
 
+/* Folded navigation ------------------------------------------------
+   The list folds into a rail so the tool keeps the width it needs. Only the
+   expand button and the guide stay reachable; everything else is display:none,
+   which also takes it out of the tab order. */
+.nwt-nav-toggle {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.nwt-nav-toggle:hover {
+  border-color: var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+.nwt-nav-toggle:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
+/* The rail's own way out, rendered only while the list is folded. */
+.nwt-nav-toggle--rail {
+  display: inline-flex;
+  align-self: center;
+  margin: 10px 0 0;
+}
+.nwt-nav--rail {
+  width: 52px;
+  flex: 0 0 52px;
+}
+.nwt-nav--rail .nwt-nav-scroll { display: none; }
+.nwt-nav--rail .nwt-nav-foot {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 8px 4px 12px;
+}
+.nwt-nav--rail .nwt-nav-foot-name,
+.nwt-nav--rail .nwt-nav-foot-version { display: none; }
+.nwt-nav--rail .nwt-nav-about { margin-left: 0; }
+/* The folded rail's only content besides the toggles: one glyph per group. */
+.nwt-nav-rail-groups {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 0 6px;
+  scrollbar-width: none;
+}
+.nwt-nav-rail-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+.nwt-nav-rail-icon:hover {
+  border-color: var(--dsw-alias-border-l1);
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+.nwt-nav-rail-icon:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
+.nwt-nav-rail-icon--active {
+  border-color: var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+}
+
 /* About / usage guide --------------------------------------------- */
 .nwt-about {
   position: absolute;
@@ -1558,11 +1644,15 @@ window.__ModuleLoader__.load({
 .nwt-about-text { font-size: 11.5px; line-height: 1.6; color: var(--dsw-alias-label-secondary); }
 .nwt-about-row--tool:hover .nwt-about-text { color: var(--dsw-alias-label-primary); }
 .nwt-nav-head {
-  padding: 4px 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 4px 12px 10px;
   font-size: 12.5px;
   font-weight: 650;
   letter-spacing: 0.01em;
 }
+.nwt-nav-head-text { flex: 1; min-width: 0; }
 .nwt-nav-head small {
   display: block;
   margin-top: 2px;
@@ -1604,6 +1694,15 @@ window.__ModuleLoader__.load({
   flex: 0 0 auto;
   transition: transform .24s cubic-bezier(.4, 0, .2, 1);
 }
+/* Same glyph the folded rail shows, so the two states teach each other. */
+.nwt-group-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-secondary);
+}
+.nwt-group-btn:hover .nwt-group-icon { color: var(--dsw-alias-label-primary); }
 .nwt-group--closed .nwt-chev { transform: rotate(-90deg); }
 .nwt-count {
   margin-left: auto;
@@ -2808,6 +2907,42 @@ window.__ModuleLoader__.load({
           h('path', { key: 'd', d: 'M19 5 L19 19' }),
         ],
         chevron: [h('polyline', { key: 'a', points: '7 10 12 15 17 10' })],
+        /* Two stacked switches: the Datacom cabinets this group is about. */
+        datacom: [
+          h('rect', { key: 'a', x: 3, y: 5, width: 18, height: 5.5, rx: 1.2 }),
+          h('rect', { key: 'b', x: 3, y: 13.5, width: 18, height: 5.5, rx: 1.2 }),
+        ],
+        /* A heartbeat trace: reachability and latency. */
+        connect: [h('path', { key: 'a', d: 'M3 12h4l2.5-6 4 12 2.5-6h5' })],
+        /* Radar rings with a sweep: discovery and scanning. */
+        scan: [
+          h('circle', { key: 'a', cx: 12, cy: 12, r: 3.2 }),
+          h('circle', { key: 'b', cx: 12, cy: 12, r: 8.6, opacity: 0.55 }),
+          h('path', { key: 'c', d: 'M12 12 L19.4 5.6' }),
+        ],
+        /* A globe for names and addresses. */
+        dns: [
+          h('circle', { key: 'a', cx: 12, cy: 12, r: 9 }),
+          h('path', { key: 'b', d: 'M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18' }),
+          h('path', { key: 'c', d: 'M3.4 9h17.2' }),
+          h('path', { key: 'd', d: 'M3.4 15h17.2' }),
+        ],
+        /* A laptop: this machine and its neighbour table. */
+        host: [
+          h('rect', { key: 'a', x: 4, y: 5, width: 16, height: 10, rx: 1.4 }),
+          h('path', { key: 'b', d: 'M2.2 18.4h19.6' }),
+        ],
+        /* Sliders: the little calculators and converters. */
+        util: [
+          h('path', { key: 'a', d: 'M4 7h16' }),
+          h('path', { key: 'b', d: 'M4 12h16' }),
+          h('path', { key: 'c', d: 'M4 17h16' }),
+        ],
+        /* A magnifier: the end-to-end diagnosis. */
+        diag: [
+          h('circle', { key: 'a', cx: 10.6, cy: 10.6, r: 6.4 }),
+          h('path', { key: 'b', d: 'M15.4 15.4 L20 20' }),
+        ],
       }
       const dots = {
         network: [
@@ -2815,6 +2950,16 @@ window.__ModuleLoader__.load({
           h('circle', { key: '2', cx: 19, cy: 5, r: 1.6 }),
           h('circle', { key: '3', cx: 5, cy: 19, r: 1.6 }),
           h('circle', { key: '4', cx: 19, cy: 19, r: 1.6 }),
+        ],
+        datacom: [
+          h('circle', { key: '1', cx: 6.4, cy: 7.7, r: 1 }),
+          h('circle', { key: '2', cx: 6.4, cy: 16.2, r: 1 }),
+        ],
+        scan: [h('circle', { key: '1', cx: 12, cy: 12, r: 1.2 })],
+        util: [
+          h('circle', { key: '1', cx: 9, cy: 7, r: 1.5 }),
+          h('circle', { key: '2', cx: 15, cy: 12, r: 1.5 }),
+          h('circle', { key: '3', cx: 8, cy: 17, r: 1.5 }),
         ],
       }
       return h(
@@ -3625,6 +3770,18 @@ window.__ModuleLoader__.load({
           { k: 'process', label: '进程' },
         ],
       },
+    }
+
+    /* One glyph per group: the folded rail shows only these, so each one has to
+       read at 18px and mean something on its own. Keys match `Icon`. */
+    const GROUP_ICONS = {
+      datacom: 'datacom',
+      connect: 'connect',
+      scan: 'scan',
+      dns: 'dns',
+      host: 'host',
+      util: 'util',
+      diag: 'diag',
     }
 
     const GROUPS = [
@@ -6199,6 +6356,26 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /* The whole tool list can fold away to give the tool more room; narrow
+       panels and small laptops are where this earns its keep. */
+    const NAV_RAIL_KEY = 'nwtool.nav.collapsed'
+
+    function readNavRail() {
+      try {
+        return window.localStorage.getItem(NAV_RAIL_KEY) === '1'
+      } catch {
+        return false
+      }
+    }
+
+    function writeNavRail(value) {
+      try {
+        window.localStorage.setItem(NAV_RAIL_KEY, value ? '1' : '0')
+      } catch {
+        /* storage may be unavailable; the rail still works for this visit */
+      }
+    }
+
     /* Which tool was open last. The panel unmounts whenever another workspace
        session takes the main slot, so without this every return lands on Ping. */
     const LAST_TOOL_KEY = 'nwtool.tool.last'
@@ -6244,6 +6421,9 @@ window.__ModuleLoader__.load({
 
     /** Height of one rendered row; mirrored by `.nwt-term-row` in the stylesheet. */
     const TERM_LINE_HEIGHT = 18
+
+    /** A session that says nothing for this long gets a hint instead of silence. */
+    const SILENT_HINT_MS = 8000
 
     function charWidth(code) {
       if (code === 0x200b || (code >= 0x0300 && code <= 0x036f)) return 0
@@ -7044,8 +7224,10 @@ window.__ModuleLoader__.load({
       }
       const rowsBelow = Math.max(0, totalRows - topRow - windowRows.length)
       const canScroll = totalRows > visibleRows
-      const needsPassword = Boolean(selected)
-        && (selected.authMode === 'prompt' || selected.authMode === 'key')
+      /* The box belongs to the target, not to the book: a restored tab whose session
+         ended still needs its password before it can be dialled again. */
+      const needsPassword = Boolean(selected && (selected.authMode === 'prompt' || selected.authMode === 'key'))
+        || Boolean(activeTab && (activeTab.authMode === 'prompt' || activeTab.authMode === 'key'))
 
       const loadDevices = () => {
         postJson({ op: 'devices.list' })
@@ -7107,6 +7289,8 @@ window.__ModuleLoader__.load({
           const runtime = runtimesRef.current[key]
           try { runtime?.controller?.abort() } catch { /* already gone */ }
           if (runtime) runtime.controller = null
+          if (runtime?.hintTimer) clearTimeout(runtime.hintTimer)
+          if (runtime) runtime.hintTimer = 0
         }
         for (const key of Object.keys(monitorsRef.current)) {
           const info = monitorsRef.current[key]
@@ -7244,10 +7428,26 @@ window.__ModuleLoader__.load({
             /* The Host keeps only the tail of a long session: say so instead of
                letting the scrollback start mid-command without explanation. */
             if (event.d?.skipped) setNotice(t('更早的输出已被裁剪，只保留最近的会话历史'))
+            /* A connected session that stays silent is the confusing case this
+               used to be: say something instead of showing a blank screen. */
+            runtime.gotData = false
+            if (runtime.hintTimer) clearTimeout(runtime.hintTimer)
+            runtime.hintTimer = setTimeout(() => {
+              runtime.hintTimer = 0
+              if (runtime.gotData || !runtime.sessionId) return
+              patchTab(key, {
+                notice: t('已连接，但还没有收到任何输出：确认密码是否正确，以及这台设备是否在等命令'),
+              })
+            }, SILENT_HINT_MS)
             if (activeKeyRef.current === key) inputRef.current?.focus?.()
             return
           }
           if (event.t === 'data') {
+            runtime.gotData = true
+            if (runtime.hintTimer) {
+              clearTimeout(runtime.hintTimer)
+              runtime.hintTimer = 0
+            }
             const raw = atob(String(event.d ?? ''))
             const bytes = new Uint8Array(raw.length)
             for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i)
@@ -7445,6 +7645,14 @@ window.__ModuleLoader__.load({
           keyPath: String(device.keyPath ?? ''),
         }
         const size = fitSize()
+        /* 「每次输入密码」 means the password is typed here, not on the device.
+           Dialling with an empty box can only be rejected — and until ssh was
+           pinned to askpass it hung silently behind an invisible prompt. */
+        if (snapshot.protocol === 'ssh' && snapshot.authMode === 'prompt' && !password.trim()) {
+          setError('')
+          setNotice(t('这台设备设成「每次输入密码」：请先在工具栏填入密码，再点连接'))
+          return
+        }
         const request = { op: 'term.open', cols: size.cols, rows: size.rows }
         /* A saved device resolves its stored secret on the host; everything
            else travels with the snapshot and the typed password. */
@@ -7499,6 +7707,18 @@ window.__ModuleLoader__.load({
         runtime.opened = false
         runtime.sessionId = ''
         const request = { ...runtime.request, cols: size.cols, rows: size.rows }
+        /* A prompt-mode device never stored its password, so a retry has to take
+           whatever is in the box now — including "nothing", which is refused
+           here instead of being dialled. */
+        if (tab.protocol === 'ssh' && (tab.authMode === 'prompt' || tab.authMode === 'key')) {
+          if (tab.authMode === 'prompt' && !password.trim()) {
+            setActiveKey(key)
+            patchTab(key, { status: 'closed', error: '', notice: t('请输入密码后重试') })
+            setNotice(t('这台设备设成「每次输入密码」：请先在工具栏填入密码，再点重新连接'))
+            return
+          }
+          request.password = password
+        }
         runtime.request = request
         /* A fresh grid has no history: start at its bottom instead of keeping the
            scroll offset of the session that just ended. */
@@ -7513,6 +7733,8 @@ window.__ModuleLoader__.load({
         if (runtime) {
           try { runtime.controller?.abort() } catch { /* already gone */ }
           runtime.controller = null
+          if (runtime.hintTimer) clearTimeout(runtime.hintTimer)
+          runtime.hintTimer = 0
           if (runtime.sessionId) postJson({ op: 'term.close', id: runtime.sessionId }).catch(() => {})
           forgetFloatSession(runtime.sessionId)
           runtime.sessionId = ''
@@ -7524,6 +7746,8 @@ window.__ModuleLoader__.load({
         const runtime = runtimesRef.current[key]
         if (runtime) {
           try { runtime.controller?.abort() } catch { /* already gone */ }
+          if (runtime.hintTimer) clearTimeout(runtime.hintTimer)
+          runtime.hintTimer = 0
           if (runtime.sessionId) postJson({ op: 'term.close', id: runtime.sessionId }).catch(() => {})
           forgetFloatSession(runtime.sessionId)
           delete runtimesRef.current[key]
@@ -9088,6 +9312,7 @@ window.__ModuleLoader__.load({
       /* Set by the topology pane: switch to the terminal and select a device. */
       const [focusDevice, setFocusDevice] = useState(null)
       const [aboutOpen, setAboutOpen] = useState(false)
+      const [navRail, setNavRail] = useState(readNavRail)
       useLanguage()
       const product = t('网络运维工具箱')
       const tagline = t('Datacom · 探测 · 诊断')
@@ -9116,6 +9341,20 @@ window.__ModuleLoader__.load({
           writeCollapsed(next)
           return next
         })
+      }
+
+      /** Fold the tool list away; remembered so the panel opens the way it was left. */
+      const toggleNavRail = (value) => {
+        const next = typeof value === 'boolean' ? value : !navRail
+        setNavRail(next)
+        writeNavRail(next)
+      }
+
+      /** A glyph in the folded rail is a shortcut into that group's first tool. */
+      const openGroup = (group) => {
+        if (group?.tools?.length) setActive(group.tools[0])
+        setNavRail(false)
+        writeNavRail(false)
       }
 
       /* The guide is generated from the same tables the panel renders, so a new
@@ -9183,11 +9422,53 @@ window.__ModuleLoader__.load({
         h('div', { className: 'nwt-aura', 'aria-hidden': true }, h('span'), h('span'), h('span')),
         h(
           'nav',
-          { className: 'nwt-nav' },
+          { className: cn('nwt-nav', navRail && 'nwt-nav--rail'), 'aria-label': product },
+          /* Folded away: the rail's only job is to offer the way back out. */
+          navRail
+            ? h('button', {
+              type: 'button',
+              className: 'nwt-nav-toggle nwt-nav-toggle--rail',
+              title: t('展开工具列表'),
+              'aria-label': t('展开工具列表'),
+              onClick: () => toggleNavRail(false),
+            }, '»')
+            : null,
+          /* Folded away, the groups stay reachable by their glyph. */
+          navRail
+            ? h(
+              'div',
+              { className: 'nwt-nav-rail-groups' },
+              GROUPS.map((group) => h(
+                'button',
+                {
+                  key: group.id,
+                  type: 'button',
+                  className: cn('nwt-nav-rail-icon', groupOf(active) === group.title && 'nwt-nav-rail-icon--active'),
+                  title: t(group.title),
+                  'aria-label': t(group.title),
+                  onClick: () => openGroup(group),
+                },
+                h(Icon, { name: GROUP_ICONS[group.id] ?? 'network', size: 18 }),
+              )),
+            )
+            : null,
           h(
             'div',
             { className: 'nwt-nav-scroll' },
-            h('div', { className: 'nwt-nav-head' }, product, h('small', null, tagline)),
+            h(
+              'div',
+              { className: 'nwt-nav-head' },
+              h('div', { className: 'nwt-nav-head-text' }, product, h('small', null, tagline)),
+              navRail
+                ? null
+                : h('button', {
+                  type: 'button',
+                  className: 'nwt-nav-toggle',
+                  title: t('收起工具列表'),
+                  'aria-label': t('收起工具列表'),
+                  onClick: () => toggleNavRail(true),
+                }, '«'),
+            ),
             GROUPS.map((group) => {
               const isClosed = collapsed.includes(group.id)
               return h(
@@ -9202,6 +9483,7 @@ window.__ModuleLoader__.load({
                     'aria-expanded': !isClosed,
                   },
                   h('span', { className: 'nwt-chev' }, h(Icon, { name: 'chevron', size: 12 })),
+                  h('span', { className: 'nwt-group-icon' }, h(Icon, { name: GROUP_ICONS[group.id] ?? 'network', size: 14 })),
                   h('span', null, t(group.title)),
                   h('span', { className: 'nwt-count' }, String(group.tools.length)),
                 ),
