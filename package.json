@@ -1,0 +1,37 @@
+{
+  "name": "dsh-nwtool",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Network operations toolbox for DeepSeek Harness: ping, tcping, traceroute, mtr, scanning, DNS, HTTP, Datacom device operations.",
+  "license": "MIT",
+  "author": "KAI-78-2 (https://github.com/KAI-78-2)",
+  "repository": { "type": "git", "url": "git+https://github.com/KAI-78-2/dsh-nwtool.git" },
+  "homepage": "https://github.com/KAI-78-2/dsh-nwtool#readme",
+  "bugs": { "url": "https://github.com/KAI-78-2/dsh-nwtool/issues" },
+  "keywords": ["dsh-plugin", "deepseek-harness", "network-tools", "datacom", "snmp", "ssh", "telnet"],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "host/*.js",
+    "locale/*.json",
+    "scripts/*.mjs",
+    "icon.svg",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}

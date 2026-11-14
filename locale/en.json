@@ -1,0 +1,9 @@
+{
+  "meta": {
+    "title": "Network operations toolbox",
+    "description": "A sidebar toolbox for ping, tcping, traceroute, MTR, IP and port scanning, LAN discovery, DNS and public-DNS testing, HTTP requests, local adapter details, WHOIS, subnet and time conversion, Wake-on-LAN, speed tests, iperf3, and Datacom device operations."
+  },
+  "panel": {
+    "title": "Network toolbox"
+  }
+}

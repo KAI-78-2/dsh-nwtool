@@ -1,0 +1,9 @@
+{
+  "meta": {
+    "title": "网络运维工具箱",
+    "description": "左侧边栏网络运维工具箱：Ping、TCPing、路由追踪、MTR、IP 与端口扫描、局域网发现、域名解析与全国公共 DNS 测速、HTTP 请求、本机网卡详情、WHOIS、子网与时间换算、网络唤醒、测速、iperf3，以及 Datacom 设备运维。"
+  },
+  "panel": {
+    "title": "网络运维工具箱"
+  }
+}

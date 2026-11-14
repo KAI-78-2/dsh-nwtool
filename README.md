@@ -1,0 +1,224 @@
+# 网络运维工具箱（dsh-nwtool）
+
+DeepSeek Harness 插件：在左侧边栏增加一个「网络运维工具箱」入口，主面板提供 20+ 个网络运维与
+Datacom 工具；同时把这些能力注册成 Agent 工具，模型可以自己调用。
+
+- 面板：侧边栏图标 + 主面板（`sidebar.panellist` / `main` 插槽）。
+- 网络探测全部在**运行 DSH 的主机侧**执行，不受浏览器跨域限制，也不需要管理员权限。
+- 零第三方依赖：只用 Node 标准库与系统自带命令。
+
+## 安装
+
+开发与验证环境：DeepSeek Harness 桌面版 0.2.2-rc.3。
+
+1. 左侧 **Plugins** → **Add plugin**（或右侧箭头 → **Install a third-party plugin**）。
+2. 填 `github:KAI-78-2/dsh-nwtool`（完整地址 `https://github.com/KAI-78-2/dsh-nwtool.git` 亦可）。
+3. **Install**，装完点 **Enable now**，侧边栏出现「网络运维工具箱」。
+
+固定版本：`github:KAI-78-2/dsh-nwtool#v1.0.0`。命令行（web profile）：
+`dsh plugin --profile web add github:KAI-78-2/dsh-nwtool`；desktop profile 请用插件页面。
+
+## 界面
+
+- 侧边栏入口名与面板左上角标题跟随宿主语言：中文显示「网络运维工具箱」，英文（及其它语言）显示「NWTool」。
+  语言取自 locale 服务的快照字段 `active`，读不到时依次退到 `<html lang>` 与浏览器语言；
+  侧边栏 label 是每次投影都会重新求值的 thunk，因此切换语言不需要刷新页面。
+- 左下角固定显示 `DSH-NWTool v<版本>`，版本号与 `package.json` 一致（自检会校验两者同步）。
+  旁边的「说明」按钮打开**关于与使用说明**：一句话介绍、运行位置与数据目录、按分组列出全部工具的
+  用法要点（点任意一行直接跳到该工具），以及注册给模型的 20 个 Agent 工具及各自用途。
+- 左侧分类可折叠，折叠状态记在 `localStorage`（`nwtool.collapsed`），下次打开保持。
+- 背景是三层极光帘幕：青色 → 蓝 → 紫 → 品红的光带以 104s / 122s / 138s 缓慢漂移、
+  26s 做整体明暗呼吸，全部做了重模糊与上下渐隐遮罩；调色板刻意**不含绿色**，也没有用
+  `hue-rotate`（旋转色相会漂到绿色）。界面控件仍只用 `--dsw-alias-*` 变量着色。
+- 页头下方有一条极光地平线光带，标题下划线取青→紫渐变。
+- 选中态、悬停态、焦点态全部由 CSS 类驱动（`.nwt-item--active`），不依赖内联样式，
+  因此切换工具时不可能残留上一项的高亮。
+- 切换工具时内容区有入场动画，运行中有脉冲圆点与扫描进度条，表格行、统计标签有微交互。
+- 遵循系统"减少动态效果"设置：`prefers-reduced-motion: reduce` 时关闭全部动画与过渡。
+
+## 终端（SSH / Telnet）
+
+`Datacom 运维 → 终端 / 设备簿` 提供一个交互式终端，用来连交换机、路由器与 Linux 主机。
+
+- **Telnet**：直接在 TCP 上自实现 RFC 854（IAC 协商、NAWS 窗口尺寸），不依赖任何外部程序。
+- **SSH**：委托本机客户端——有 PuTTY 的 `plink` 就优先用它（`-pw` 直传密码），否则用 Windows 自带的
+  OpenSSH `ssh`（通过 `SSH_ASKPASS` 传密码，主机指纹用插件自己的 `known_hosts` 做 TOFU）。
+- **编码可切**：传输的是原始字节，主机侧不解码；前端用 `UTF-8` 或 `GBK` 解码，所以同一个会话既能看
+  Linux 的 UTF-8 输出，也能看国内交换机的 GBK 中文。切换编码只影响之后的输出。
+- **VT100/xterm 子集**：光标定位、SGR 颜色（含 256 色）、清行/清屏、插删行/字符、滚动区域、
+  备用屏（`?1049`）、光标显隐、CJK 宽字符双格。遇到不认识的转义序列是忽略而不是画错。
+- **复制 / 粘贴**：屏幕内容是可选中的普通文本——鼠标拖选后 `Ctrl+C` 复制（`Ctrl+Shift+C` 亦可），
+  `Ctrl+V` 把剪贴板内容送进终端（换行自动转成回车，不会被当成 `^V` 发给设备）。
+  只有**没有**选中文本时，`Ctrl+C` 才作为中断信号发出。
+- **滚动历史**：滚出屏幕顶部的行会进入前端回滚缓冲（最多 2000 行），鼠标滚轮或滚动条往回翻；
+  翻走后右下角出现「回到底部」一键回到最新输出，新输出只在贴底时自动跟随。
+- **浮窗**：工具栏点「浮窗」把当前标签钉到右上角的小窗。切到工作区会话（或任何不是工具箱的面板）时，
+  小窗自己接一条 `term.attach` 继续显示实时输出；可拖动、可缩放、可直接输入，危险命令的授权也能在小窗里答。
+  小窗标题栏里还有「共享给 DSH / 取消共享」，不用切回面板就能放行或收回。工具箱面板回来时小窗自动收回
+  并由面板接管；关掉小窗只是取消浮窗，不会断开设备。钉住的会话在 `localStorage` 里存着，在会话里刷新页面也会回来。
+- **设备簿**：名称/地址/端口/协议/用户名/认证方式，密码三选一——
+  `每次输入`（不落盘）、`保存密码`（本机 `~/.dsh-nwtool/devices.json`，AES-256-GCM + 本机密钥文件加密）、
+  `SSH 私钥`、`SSH agent`。
+- **多会话标签页**：每点一次「连接」就多一个标签，各自挂着独立的传输流。切标签只是换前台，
+  后台会话照常收输出，标签自己保留整屏内容与滚动历史；切到工作区再回来会从 Host 缓冲重放
+  （Host 保留最近 256 KB 原始字节），无人在看时会话仍保留 **20 分钟**，只有点 `×` 才会断开并关闭。
+  标签上的圆点表示状态：绿色已连接、黄色连接中、红色已断开（可一键重连，屏幕内容不丢）。
+- **设备分组**：新建/编辑设备时可以选已有分组，也可以直接输入新名称（输入不存在的名字即建新分组）；
+  空名归入「默认分组」。设备簿里按分组折叠显示，默认分组排在最前。
+- **侧边栏监控**：CPU / 内存 / 负载 / 磁盘 / 网卡，5 秒轮询。Linux 读 `/proc` + `df`，华为 VRP/H3C 用
+  `display cpu-usage` / `display memory-usage` / `dir` / `display interface brief`，思科 IOS 用
+  `show processes cpu` / `show memory statistics` / `dir` / `show interfaces summary`。
+  监控走**独立于交互终端的第二条连接**（同一套凭据），所以轮询命令不会打断你正在 `top` 或 `vi` 的画面。
+- **文件浏览**：Linux 用 `ls -la` 列目录、点文件再用 `stat -c` 取详情；VRP/IOS 用 `dir`。
+  纯只读；路径只允许字母、数字和 `. / \ : -`，`;` `|` `$` 之类的命令注入字符直接拒绝。
+
+### 传输方式
+
+终端**不走 WebSocket**：桌面壳的 CSP 会拦掉 `ws://`。实际用的是同一套 HTTP 通道——
+
+- 下行：`POST /nwtool/api {op:'term.open'}` 返回 NDJSON 流，`ready` / `data`(base64) / `exit` / `error`；
+- 上行：`POST {op:'term.input'|'term.resize'|'term.close'}`，按会话 id 寻址。
+
+字节以 base64 传输，前端按所选编码解码，所以 GBK 与 UTF-8 都不会在传输层被改写。
+
+### 安全模型
+
+终端能在本机开 shell，所以做了两道门：
+
+1. **对端信任**：来自本机回环地址的请求放行（本机进程本来就能开 shell，也兼容桌面壳里
+   `Origin: null` 的情况）；非本机请求必须带上浏览器已经用过的 Cookie，且 Origin 与 Host 一致。
+2. **会话能力**：`term.input` / `term.resize` / `term.close` 必须携带 `term.open` 返回的随机
+   sessionId（122 位），猜不到也拿不到别人的。
+
+已知限制：SSH 会话的窗口尺寸在连接时确定，拖拽面板不会实时重排（Telnet 走 NAWS 实时更新）；
+切回某个标签页时会按当前容器尺寸重新握手一次。交互式终端依赖本机装有 `plink` 或 `ssh`。
+
+## 多语言（i18n）
+
+中文是**源语言**：所有文案直接以中文写在代码里，`locale/messages.json` 的 `en` 表按中文原文做映射，
+查询顺序是「当前语言 → 英文 → 中文原文」，所以漏翻只会退回中文，不会露出 key。
+
+- 客户端 `t('中文')`、主机侧 `import { t } from './i18n.js'`，两边共用同一份词典。
+- 带变量时用 `${name}` 占位：`t('已发送 ${count} 次', { count })`，翻译里同样保留占位符。
+- 主机侧的语言由浏览器请求里的 `lang` 决定，通过 `AsyncLocalStorage` 贯穿整条调用链，不需要层层传参。
+- 参考数据（公共 DNS 备注、命令速查表）保持中文原文，由客户端在**渲染时**翻译，因此切换语言时已加载的数据也会跟着变。
+- 模型调用的工具描述（`host/tools.js`）不参与本地化：它们面向模型而不是界面。
+
+**改文案的流程**：直接在代码里写中文并用 `t()` 包起来 → 在 `locale/messages.json` 的 `en` 表加一行
+`"中文原文": "English"` → `node scripts/sync-messages.mjs` 把词典内联进 `client.js` → 跑自检。
+
+自检分三路，覆盖「静态 + 行为」两层：
+
+- `verify-i18n.mjs`：主机侧每条中文输出都包了 `t()`、每个 `t()` 的 key 都有英文、占位符两边一致、内联副本与 JSON 同步。
+- `verify-client-render.mjs`：以英文渲染**每一个面板**，屏幕上不允许出现任何中文——这条是「新增文案默认 i18n」的硬约束。
+- `verify-host-i18n.mjs`：17 个引擎分别在 `en` / `zh` 下各跑一遍，英文输出不得含中文（操作系统自带的网卡名等数据除外）。
+
+
+## 工具清单
+
+| 分组 | 工具 | 实现要点 |
+| --- | --- | --- |
+| Datacom | 终端 / 设备簿 | 自研 VT100 子集 + 多会话标签页，设备分组保存，可钉成右上角浮窗 |
+| | 设备配置采集 | SSH/Telnet 批量执行命令，自动处理 `---- More ----`，归档备份 |
+| | 网络拓扑 | 手工绘制的简易拓扑：多张图纸、设备图标、缩放、虚线分组框，右键关联设备簿、双击跳到终端 |
+| | SNMP 设备识别 | 纯 JS SNMP v2c GET，读 SYSTEM 组并推断厂商 |
+| | 配置对比 | 两份配置并排 diff（LCS，按删除/新增/修改着色） |
+| | 配置备份库 | 列出/查看/删除本机归档的配置 |
+| | VRP / IOS 命令速查 | 128 条华为 VRP/H3C 与思科 IOS/NX-OS 命令对照，可搜索 |
+| | 配置发送 DSH 提问 | 选备份生成提示词，复制到剪贴板并新建会话 |
+| 连通性 | Ping | 系统 `ping` 逐包探测，解析 RTT/TTL，统计丢包与抖动 |
+| | TCPing | TCP connect 计时，ICMP 被过滤时判断可达性 |
+| | Traceroute | 系统 `tracert` / `traceroute`，逐跳地址与 RTT |
+| | MTR | 多轮 traceroute，统计每跳丢包率、平均/最好/最差/抖动 |
+| 扫描 | IP 扫描 | 网段/范围并发探测，TCP 或 ICMP，反解主机名 |
+| | 端口扫描 | TCP connect 扫描，可选 banner 抓取 |
+| | 扫描局域网 | UDP 触发 ARP + 读 ARP 表，反解主机名，OUI 厂商 |
+| | 全国公共 DNS 测试 | 27 个公共 DNS 并发测解析时延并排序 |
+| 域名 | 域名解析 | 原始 DNS 报文查询 A/AAAA/CNAME/MX/TXT/NS/SOA/SRV/CAA/PTR |
+| | dig | 指定 DNS 服务器/类型/递归，输出含 TTL、标志位、权威段 |
+| | WHOIS | RDAP（JSON）优先，回退 whois:43 原始文本 |
+| | IP 地理定位 | 归属地/运营商/ASN，多服务回退；内网地址本地判断不外发 |
+| 本机与二层 | 本机 IP 详细信息 | `Get-NetIPConfiguration` + 公网出口 IP（多探测源） |
+| | 本机端口状态 | `netstat -ano` / `ss -tunap` 解析：监听、连接、进程、PID |
+| | ARP 列表 | 点「查看列表」读缓存；选中一行后可删除单条，另有添加与全部删除（需提权） |
+| 实用 | IP 计算器 | 纯本地：掩码换算、网络/广播、可用范围、二进制、子网划分 |
+| | 进制换算器 | 纯本地：32 位整数四进制互转、逐位开关、移位与逻辑运算 |
+| | 字节单位换算器 | 字节/比特与 KB·MiB 两套单位互转，附「标称容量 vs 系统显示」换算 |
+| | SNTP 查询 | UDP 123 取时：本机时钟偏移、往返时延、层级 |
+| | 时间转化 | 纯本地：时间戳/日期/时区/相对时间 |
+| | 网络唤醒 | UDP 魔术包（6×FF + 16×MAC），设备可命名保存、一键唤醒、记录上次唤醒时间 |
+| | HTTP 工具 | 主机侧发请求，状态/响应头/耗时/正文，NDJSON 流式回传 |
+| | 网络测速 | HTTP 大文件上下行吞吐（默认 Cloudflare 端点） |
+| | iperf3 | 调用本机 `iperf3`，解析 `-J` JSON |
+| 综合 | 网络诊断 | 网卡 → 网关 → DNS → 解析 → 外网 → TCP 出站 → 公网出口，输出结论 |
+
+## Agent 工具
+
+`nwtool_ping`、`nwtool_tcping`、`nwtool_traceroute`、`nwtool_dns`、`nwtool_http_request`、
+`nwtool_port_scan`、`nwtool_ip_scan`、`nwtool_subnet_calc`、`nwtool_sntp`、
+`nwtool_ip_geolocation`、`nwtool_local_ports`、`nwtool_arp_table`、
+`nwtool_backup_list`、`nwtool_backup_read`、`nwtool_config_search`、`nwtool_config_diff`、
+`nwtool_device_exec`、`nwtool_snmp_identify`、`nwtool_command_reference`。
+
+## 结构
+
+```
+index.js           Host 入口：注册 HTTP 端点与 Agent 工具
+host/util.js       IPv4 运算、并发池、进程执行
+host/data.js       公共 DNS 列表、OUI 子集、VRP/IOS 命令表、端口名
+host/net.js        ICMP/TCP 探测、traceroute、MTR、扫描、WOL、网卡、测速、诊断
+host/dns.js        DNS 报文编解码、dig、公共 DNS 测速、WHOIS/RDAP
+host/http.js       HTTP 请求引擎
+host/cli.js        Telnet 客户端、SSH 子进程、设备会话与分页处理
+host/term.js       交互终端：设备簿（分组）、密码加密存储、Telnet/SSH 会话注册表（无人观看时保留 20 分钟）
+host/sntp.js       SNTP 取时（UDP 123），四时间戳算偏移与往返时延
+host/geo.js        IP 归属地：多服务回退，内网地址本地判断
+host/local.js      本机套接字表（netstat/ss）与 ARP / 邻居表读写
+host/diagram.js    网络拓扑画布的存取与校验（~/.dsh-nwtool/topology.json）
+host/monitor.js    终端侧边栏：分厂商采样 CPU/内存/磁盘/网卡，文件浏览与 stat
+host/datacom.js    备份归档、配置 diff、SNMP、命令速查、批量执行
+host/engine.js     面板与 Agent 共用的工具调度表
+host/api.js        POST /nwtool/api，NDJSON 流式事件
+host/tools.js      Agent 工具定义
+client.js          侧边栏图标 + 主面板 + 框架浮层（共享状态条、终端浮窗），纯 React.createElement，无构建步骤
+```
+
+面板与 Host 之间只有一条通道：`POST /nwtool/api`，请求体 `{op:'run', tool, params}`，
+响应是按行分隔的 JSON 事件（`rows` / `stats` / `kv` / `sections` / `text` / `diff` /
+`notice` / `error` / `done`）。浏览器中断请求即取消主机侧任务。
+
+## 已知限制（有意为之）
+
+- **SSH 不内置协议栈**：手写 SSH 传输层不现实。SSH 交给本机客户端——优先 PuTTY 的 `plink`
+  （支持密码），否则用系统 `ssh`（`SSH_ASKPASS` 传递密码，需要 OpenSSH 8.4+）。Telnet 为原生实现。
+- **iperf3 不内嵌二进制**：调用官方 `iperf3.exe`。把解压出来的 `iperf3.exe` 放到
+  `%USERPROFILE%\.dsh-nwtool\bin\`（工具会先查这里，再查 PATH），面板会直接显示这个完整路径。
+- **不做 SYN 快扫 / 原始套接字抓包**：需要管理员权限与原生 socket，Node 不提供。
+- **拓扑靠手绘，不自动发现**：网络拓扑是一张可编辑的图纸，支持多张图纸（各自命名、随时切换），
+  位置与关联都存在 `~/.dsh-nwtool/topology.json`；设备与设备簿的关联是手工指定的。
+  自动发现（LLDP/CDP）需要管理员权限或设备凭据，本版未包含；旧版的单画布文件会自动迁移成一张图纸。
+- **ARP 写入需要提权**：查看缓存不需要权限；添加静态条目、删除单条、全部清空在 Windows 需管理员、
+  Linux 需 root。失败时把系统原话回显出来，不会假装成功。
+- **监控与文件浏览要占用第二条连接**：为了不干扰交互终端的画面，侧边栏另开一条 CLI 会话（同一凭据），
+  上限 8 条；关掉侧边栏或关闭标签页即断开。IOS 的网卡速率依赖 `show interfaces summary`，
+  老平台没有该命令时只显示 CPU/内存/磁盘。
+- **OUI 厂商库是精简子集**：离线只内置常见厂商，其余需在「扫描局域网」里开启在线查询
+  （`api.macvendors.com`）。
+- **中间跳 RTT 依赖系统 traceroute**：Windows 的 `ping` 对 TTL 超时回复不给时延，因此
+  traceroute/MTR 使用 `tracert`，它才提供每跳 RTT。
+- **⑤ 上下文直读只能走剪贴板**：DSH 没有向已有输入框注入文本的插件接口，所以是
+  「复制提示词 / 复制并新建会话」。
+
+## 安全说明
+
+- 端点 `/nwtool/api` 只监听本机 DSH 的 Web 服务，**没有额外鉴权**：任何能在该端口发起请求的
+  本机进程都可以调用这些网络能力（与浏览器同源页面一致）。请勿把 DSH Web 端口暴露到公网。
+- 设备密码只在内存中使用，不落盘、不写日志；配置备份存放在 `~/.dsh-nwtool/backups`，
+  已保存的唤醒设备存放在 `~/.dsh-nwtool/wol-devices.json`。
+
+## 开源与许可
+
+本插件为原创实现，**没有引入任何第三方 npm 依赖**，因此不承担第三方代码的分发义务。
+它调用的是用户机器上已有的可执行文件（`ping`、`tracert`、`ssh`、`plink`、`iperf3`），
+这些程序各自遵循其自身许可证。在线数据来源：RDAP（各注册局公开接口）、
+`api.macvendors.com`（厂商查询）、`myip.ipip.net` / `api.ipify.org` / `ipinfo.io`（公网 IP）。
