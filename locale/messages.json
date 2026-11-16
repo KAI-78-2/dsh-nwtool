@@ -1130,6 +1130,12 @@
     "这台设备设成「每次输入密码」：请先在工具栏填入密码，再点连接": "This device asks for a password each time: type it in the toolbar first, then connect",
     "这台设备设成「每次输入密码」：请先在工具栏填入密码，再点重新连接": "This device asks for a password each time: type it in the toolbar first, then reconnect",
     "请输入密码后重试": "Type the password, then try again",
-    "已连接，但还没有收到任何输出：确认密码是否正确，以及这台设备是否在等命令": "Connected, but nothing has arrived yet: check the password, and whether this device is waiting for a command"
+    "已连接，但还没有收到任何输出：确认密码是否正确，以及这台设备是否在等命令": "Connected, but nothing has arrived yet: check the password, and whether this device is waiting for a command",
+    "撤销": "Undo",
+    "重做": "Redo",
+    "撤销上一步（Ctrl+Z）": "Undo the last step (Ctrl+Z)",
+    "重做（Ctrl+Shift+Z）": "Redo (Ctrl+Shift+Z)",
+    "恢复默认": "Reset to default",
+    "拖动移动设备，工具栏「连线」后依次点两台设备即可连线；右键设备可关联设备簿里的条目，双击跳转到终端并选中它。选中连线可以改颜色与线型；选中矩形框后拖右下角圆点可改大小。Ctrl+Z 撤销、Ctrl+Shift+Z 重做；图会自动存到 ~/.dsh-nwtool/topology.json。": "Drag a device to move it; pick Link and click two devices in turn to connect them. Right-click a device to bind it to a device-book entry, double-click to jump to the terminal with it selected. Select a line to change its colour and style; select a frame and drag the dot at its bottom-right corner to resize it. Ctrl+Z undoes, Ctrl+Shift+Z redoes; the drawing autosaves to ~/.dsh-nwtool/topology.json."
   }
 }

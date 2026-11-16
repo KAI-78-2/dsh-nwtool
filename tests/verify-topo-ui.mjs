@@ -244,6 +244,14 @@ expect('an empty canvas renders', nodes().length === 0 && buttons().some((button
 expect('the palette offers the wireless types',
   buttons().some((button) => textOf(button).includes('+ 无线AC')) && buttons().some((button) => textOf(button).includes('+ 无线 AP')))
 
+const undoButton = () => buttons().find((button) => textOf(button).trim() === '撤销')
+expect('undo starts disabled', undoButton()?.props.disabled === true)
+
+/* The grip sits inside a click-through frame, so it has to opt back in — the
+   bug that made frames impossible to resize. */
+const gripRule = (source.match(/\.nwt-topo-frame-grip \{[^}]*\}/) || [''])[0]
+expect('the resize grip takes the mouse', gripRule.includes('pointer-events: auto'), gripRule.slice(0, 90))
+
 click('+ 无线 AP')
 const apNode = nodes()[0]
 expect('the AP node draws an icon', collect(apNode, (node) => node.type === 'svg').length === 1)
@@ -396,6 +404,21 @@ expect('a dashed link is dashed', linkLine().props.strokeDasharray === '8 5', St
 styleSelect().props.onChange({ target: { value: 'solid' } })
 expect('a solid link has no dash array', linkLine().props.strokeDasharray === undefined, String(linkLine().props.strokeDasharray))
 
+/* A line takes a colour of its own, and the label follows it. */
+const linkColor = () => collect(currentTree, (node) => node.type === 'input' && hasClass(node, 'nwt-topo-link-color'))[0]
+expect('selecting a link offers a colour', Boolean(linkColor()))
+linkColor().props.onChange({ target: { value: '#f59e0b' } })
+expect('the colour paints the line', linkLine().props.style?.stroke === '#f59e0b', JSON.stringify(linkLine().props.style))
+expect('a coloured selection gets a halo instead of the brand stroke',
+  collect(currentTree, (node) => hasClass(node, 'nwt-topo-link-halo')).length === 1)
+const linkLabel = () => collect(currentTree, (node) => hasClass(node, 'nwt-topo-link-label'))[0]
+expect('the label follows the colour', linkLabel()?.props.style?.color === '#f59e0b', JSON.stringify(linkLabel()?.props.style))
+const resetColor = () => buttons().find((button) => textOf(button).trim() === '恢复默认')
+expect('a coloured link offers a reset', Boolean(resetColor()))
+resetColor().props.onClick()
+expect('resetting drops the inline colour', linkLine().props.style === undefined, JSON.stringify(linkLine().props.style))
+expect('the halo goes with the colour', collect(currentTree, (node) => hasClass(node, 'nwt-topo-link-halo')).length === 0)
+
 /* Deleting a node must take its links with it. */
 nodes()[0].props.onMouseDown({ button: 0, clientX: 0, clientY: 0, preventDefault() {}, stopPropagation() {} })
 dispatch('mouseup', {})
@@ -404,6 +427,87 @@ expect('deleting a node removes its links too', lines().length === 0, String(lin
 
 click('清空')
 expect('clear empties the canvas', nodes().length === 0, String(nodes().length))
+
+/* ------------------------------------------------------------------ */
+/* Undo, redo and Ctrl+Z                                               */
+/* ------------------------------------------------------------------ */
+
+/* 清空 was one step; undo brings the remaining switch back. */
+click('撤销')
+expect('undo restores what 清空 removed', nodes().length === 1, String(nodes().length))
+click('重做')
+expect('redo takes it away again', nodes().length === 0, String(nodes().length))
+click('撤销')
+expect('undo can be applied again', nodes().length === 1, String(nodes().length))
+
+/* One drag is one step, however many mousemove events it took. */
+const dragFrom = nodes()[0].props.style.left
+nodes()[0].props.onMouseDown({ button: 0, clientX: 300, clientY: 300, preventDefault() {}, stopPropagation() {} })
+dispatch('mousemove', { clientX: 360, clientY: 340 })
+dispatch('mousemove', { clientX: 420, clientY: 380 })
+dispatch('mouseup', {})
+expect('the drag moved the node', nodes()[0].props.style.left !== dragFrom, `${dragFrom} -> ${nodes()[0].props.style.left}`)
+click('撤销')
+expect('one undo covers the whole drag', nodes()[0].props.style.left === dragFrom, nodes()[0].props.style.left)
+
+/* A burst of typing is one step too, not one per keystroke. */
+nodes()[0].props.onMouseDown({ button: 0, clientX: 0, clientY: 0, preventDefault() {}, stopPropagation() {} })
+dispatch('mouseup', {})
+const noteBurst = () => collect(currentTree, (node) => node.type === 'input' && hasClass(node, 'nwt-topo-note-input'))[0]
+const noteText = () => textOf(collect(currentTree, (node) => hasClass(node, 'nwt-topo-node-note'))[0])
+const noteBefore = noteText()
+noteBurst().props.onChange({ target: { value: '核' } })
+noteBurst().props.onChange({ target: { value: '核心' } })
+noteBurst().props.onChange({ target: { value: '核心区' } })
+expect('typing shows the note', noteText() === '核心区', noteText())
+click('撤销')
+expect('one undo covers a burst of typing', noteText() === noteBefore, JSON.stringify(noteText()))
+
+/* The keyboard shortcut, and the one case where it must stay out of the way. */
+click('重做')
+expect('redo restores the typed note', noteText() === '核心区', noteText())
+dispatch('keydown', { ctrlKey: true, key: 'z', target: { tagName: 'INPUT' }, preventDefault() {} })
+expect('a focused text field keeps its own undo', noteText() === '核心区', noteText())
+dispatch('keydown', { ctrlKey: true, key: 'z', preventDefault() {} })
+expect('Ctrl+Z undoes', noteText() === noteBefore, JSON.stringify(noteText()))
+dispatch('keydown', { ctrlKey: true, key: 'z', shiftKey: true, preventDefault() {} })
+expect('Ctrl+Shift+Z redoes', noteText() === '核心区', noteText())
+
+/* Frames resize from the grip, in one undo step. The undo above already
+   brought the first frame back, so this one has to be the last of two. */
+const frameEls = () => collect(currentTree, (node) => hasClass(node, 'nwt-topo-frame'))
+const lastFrame = () => frameEls().at(-1)
+const frameCount = frameEls().length
+click('画框')
+const canvasEl = () => collect(currentTree, (node) => hasClass(node, 'nwt-topo-canvas'))[0]
+canvasEl().props.onMouseDown({ button: 0, clientX: 40, clientY: 40, preventDefault() {}, stopPropagation() {} })
+dispatch('mousemove', { clientX: 340, clientY: 240 })
+dispatch('mouseup', {})
+expect('a frame can be drawn again',
+  frameEls().length === frameCount + 1 && lastFrame()?.props.style.width === '300px',
+  `${frameEls().length} frames, ${lastFrame()?.props.style.width}`)
+const gripEl = () => collect(currentTree, (node) => hasClass(node, 'nwt-topo-frame-grip')).at(-1)
+expect('the selected frame offers a resize grip', Boolean(gripEl()))
+gripEl().props.onMouseDown({ button: 0, clientX: 340, clientY: 240, preventDefault() {}, stopPropagation() {} })
+dispatch('mousemove', { clientX: 400, clientY: 300 })
+dispatch('mouseup', {})
+expect('dragging the grip resizes the frame',
+  lastFrame().props.style.width === '360px' && lastFrame().props.style.height === '260px',
+  `${lastFrame().props.style.width} x ${lastFrame().props.style.height}`)
+click('撤销')
+expect('one undo covers the resize', lastFrame().props.style.width === '300px', lastFrame().props.style.width)
+
+/* The corner works on an unselected frame too: the grip is painted only when
+   active, but it always takes the mouse. */
+const idleGrip = () => collect(currentTree, (node) => hasClass(node, 'nwt-topo-frame-grip')).at(-1)
+expect('an idle frame keeps an unpainted grab point', idleGrip()?.props.style?.opacity === 0)
+idleGrip().props.onMouseDown({ button: 0, clientX: 340, clientY: 240, preventDefault() {}, stopPropagation() {} })
+dispatch('mousemove', { clientX: 320, clientY: 220 })
+dispatch('mouseup', {})
+expect('the corner resizes without selecting first',
+  lastFrame().props.style.width === '280px' && lastFrame().props.style.height === '180px',
+  `${lastFrame().props.style.width} x ${lastFrame().props.style.height}`)
+expect('resizing selects the frame', lastFrame().props.className.includes('nwt-topo-frame--active'), lastFrame().props.className)
 
 console.log(failures === 0 ? '\nthe topology canvas behaves' : `\n${failures} topology UI check(s) failed`)
 process.exit(failures === 0 ? 0 : 1)

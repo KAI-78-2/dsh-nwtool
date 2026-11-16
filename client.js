@@ -19,7 +19,7 @@ window.__ModuleLoader__.load({
     const PANEL_ID = 'nwtool'
     const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
     const PRODUCT = 'DSH-NWTool'
-    const VERSION = '1.1.0'
+    const VERSION = '1.2.0'
 
     /* ------------------------------------------------------------ */
     /* Language                                                      */
@@ -1165,7 +1165,13 @@ window.__ModuleLoader__.load({
         "这台设备设成「每次输入密码」：请先在工具栏填入密码，再点连接": "This device asks for a password each time: type it in the toolbar first, then connect",
         "这台设备设成「每次输入密码」：请先在工具栏填入密码，再点重新连接": "This device asks for a password each time: type it in the toolbar first, then reconnect",
         "请输入密码后重试": "Type the password, then try again",
-        "已连接，但还没有收到任何输出：确认密码是否正确，以及这台设备是否在等命令": "Connected, but nothing has arrived yet: check the password, and whether this device is waiting for a command"
+        "已连接，但还没有收到任何输出：确认密码是否正确，以及这台设备是否在等命令": "Connected, but nothing has arrived yet: check the password, and whether this device is waiting for a command",
+        "撤销": "Undo",
+        "重做": "Redo",
+        "撤销上一步（Ctrl+Z）": "Undo the last step (Ctrl+Z)",
+        "重做（Ctrl+Shift+Z）": "Redo (Ctrl+Shift+Z)",
+        "恢复默认": "Reset to default",
+        "拖动移动设备，工具栏「连线」后依次点两台设备即可连线；右键设备可关联设备簿里的条目，双击跳转到终端并选中它。选中连线可以改颜色与线型；选中矩形框后拖右下角圆点可改大小。Ctrl+Z 撤销、Ctrl+Shift+Z 重做；图会自动存到 ~/.dsh-nwtool/topology.json。": "Drag a device to move it; pick Link and click two devices in turn to connect them. Right-click a device to bind it to a device-book entry, double-click to jump to the terminal with it selected. Select a line to change its colour and style; select a frame and drag the dot at its bottom-right corner to resize it. Ctrl+Z undoes, Ctrl+Shift+Z redoes; the drawing autosaves to ~/.dsh-nwtool/topology.json."
       }
     }
     /* i18n:messages:end */
@@ -2730,6 +2736,9 @@ window.__ModuleLoader__.load({
 .nwt-topo-link-hit { stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
 .nwt-topo-link-line { stroke: var(--dsw-alias-border-l2); stroke-width: 2; }
 .nwt-topo-link-line--active { stroke: var(--dsw-alias-brand-primary); stroke-width: 3; }
+/* A line with its own colour keeps it when selected, so the halo carries the
+   selection instead of the stroke. */
+.nwt-topo-link-halo { stroke: var(--dsw-alias-brand-primary); stroke-width: 9; opacity: .3; }
 .nwt-topo-node {
   position: absolute; display: flex; align-items: center; gap: 7px;
   padding: 5px 8px; border-radius: 9px;
@@ -2807,13 +2816,18 @@ window.__ModuleLoader__.load({
   font-size: 11px; font-weight: 600; pointer-events: auto; cursor: grab;
 }
 .nwt-topo-frame-grip {
-  position: absolute; right: -5px; bottom: -5px; width: 12px; height: 12px;
-  border-radius: 3px; cursor: nwse-resize;
-  border: 1px solid var(--dsw-alias-bg-base);
-  background: var(--dsw-alias-label-secondary);
+  position: absolute; right: -6px; bottom: -6px; width: 14px; height: 14px;
+  border-radius: 4px; cursor: nwse-resize;
+  border: 2px solid var(--dsw-alias-bg-layer-1);
+  background: var(--dsw-alias-brand-primary);
+  /* The frame itself is click-through; the grip has to opt back in or the
+     mousedown lands on the canvas behind it and only clears the selection. */
+  pointer-events: auto;
+  touch-action: none;
 }
 .nwt-topo-frame-note { font-size: 12px; }
 .nwt-topo-frame-color { height: 30px; padding: 2px; cursor: pointer; }
+.nwt-topo-link-color { height: 30px; padding: 2px; cursor: pointer; }
 .nwt-topo-link-style { width: auto; min-width: 110px; }
 .nwt-topo-empty {
   position: absolute; left: 24px; top: 24px; max-width: 420px;
@@ -3836,7 +3850,7 @@ window.__ModuleLoader__.load({
       ipcalc: '纯本地计算，不发任何网络请求。「额外划分层数」最多 4 层，每层最多列出 16 个网段。',
       bitcalc: '32 位无符号整数。点任意一位翻转（高位在左）；有符号十进制按二进制补码解释。',
       sizeconv: '十进制（KB/MB/GB/TB）与二进制（KiB/MiB/GiB/TiB）两套口径同时给出；硬盘标称差是单位不同，不是容量缩水。',
-      diagram: '拖动移动设备，工具栏「连线」后依次点两台设备即可连线；右键设备可关联设备簿里的条目，双击跳转到终端并选中它。图会自动存到 ~/.dsh-nwtool/topology.json。',
+      diagram: '拖动移动设备，工具栏「连线」后依次点两台设备即可连线；右键设备可关联设备簿里的条目，双击跳转到终端并选中它。选中连线可以改颜色与线型；选中矩形框后拖右下角圆点可改大小。Ctrl+Z 撤销、Ctrl+Shift+Z 重做；图会自动存到 ~/.dsh-nwtool/topology.json。',
       sntp: '只读取时间，不修改系统时钟。UDP 123 被防火墙挡住时会显示无响应，换一台服务器再试。',
       timeconv: '纯本地计算。时间戳支持秒与毫秒，时区换算以浏览器所在时区为基准。',
       wol: '发 6 个 FF + 16 次 MAC 的魔术包（UDP 9）。目标机需要在 BIOS 和网卡驱动里都开启网络唤醒。',
@@ -5422,6 +5436,13 @@ window.__ModuleLoader__.load({
 
     /* Frames are group boxes: a dashed rounded rectangle behind the drawing. */
     const TOPO_FRAME_COLOR = '#64748b'
+    /* Shown in the colour picker until the line has a colour of its own; the
+       line itself keeps the theme border colour while `color` is empty. */
+    const TOPO_LINK_COLOR = '#64748b'
+    /* Undo keeps whole-library snapshots; a burst of typing or one drag folds
+       into a single step. */
+    const HISTORY_STEPS = 60
+    const HISTORY_MERGE_MS = 1000
     /* Literal names again, so the stylesheet checker sees each edge used. */
     const TOPO_FRAME_EDGE = {
       top: 'nwt-topo-frame-edge--top',
@@ -5454,6 +5475,8 @@ window.__ModuleLoader__.load({
       const [renaming, setRenaming] = useState(null)
       const [frameMode, setFrameMode] = useState(false)
       const [draft, setDraft] = useState(null)
+      const [canUndo, setCanUndo] = useState(false)
+      const [canRedo, setCanRedo] = useState(false)
       const canvasRef = useRef(null)
       const rootRef = useRef(null)
       const menuRef = useRef(null)
@@ -5464,6 +5487,8 @@ window.__ModuleLoader__.load({
       const latestRef = useRef(library)
       latestRef.current = library
       const loadedRef = useRef(false)
+      /* past: snapshots to return to; future: the redo side of the stack. */
+      const historyRef = useRef({ past: [], future: [], key: '', at: 0 })
 
       const sheet = library.diagrams.find((item) => item.id === library.activeId) ?? null
       const nodes = sheet?.nodes ?? []
@@ -5526,9 +5551,81 @@ window.__ModuleLoader__.load({
       const setLinks = (updater) => updateSheet((current) => ({ ...current, links: updater(current.links) }))
       const setFrames = (updater) => updateSheet((current) => ({ ...current, frames: updater(current.frames ?? []) }))
 
-      const patchNode = (id, patch) => setNodes((list) => list.map((node) => (node.id === id ? { ...node, ...patch } : node)))
+      /** The open sheet as of the last render, for checks that must not go stale. */
+      const currentSheet = () => latestRef.current.diagrams.find((item) => item.id === latestRef.current.activeId) ?? null
+
+      const cloneLibrary = (value) => (typeof structuredClone === 'function'
+        ? structuredClone(value)
+        : JSON.parse(JSON.stringify(value)))
+
+      const syncHistory = () => {
+        const history = historyRef.current
+        setCanUndo(history.past.length > 0)
+        setCanRedo(history.future.length > 0)
+      }
+
+      /**
+       * Snapshot the sheet as it is now, before an edit lands. A `mergeKey`
+       * folds a burst of edits — typing a name, sliding a colour picker — into
+       * one undo step instead of one per keystroke.
+       */
+      const remember = (mergeKey) => {
+        if (!loadedRef.current) return
+        const history = historyRef.current
+        const now = Date.now()
+        if (mergeKey && history.key === mergeKey && now - history.at < HISTORY_MERGE_MS) {
+          history.at = now
+          return
+        }
+        history.past.push(cloneLibrary(latestRef.current))
+        if (history.past.length > HISTORY_STEPS) history.past.shift()
+        history.future.length = 0
+        history.key = mergeKey || ''
+        history.at = now
+        syncHistory()
+      }
+
+      /** Put a snapshot back. Selection and the link cursor belong to the old state. */
+      const restore = (snapshot) => {
+        setLibrary(snapshot)
+        setSelected(null)
+        setLinkFrom('')
+        setMenu(null)
+      }
+
+      const undo = () => {
+        const history = historyRef.current
+        if (!history.past.length) return
+        const previous = history.past.pop()
+        history.future.push(cloneLibrary(latestRef.current))
+        if (history.future.length > HISTORY_STEPS) history.future.shift()
+        history.key = ''
+        history.at = 0
+        restore(previous)
+        syncHistory()
+      }
+
+      const redo = () => {
+        const history = historyRef.current
+        if (!history.future.length) return
+        const next = history.future.pop()
+        history.past.push(cloneLibrary(latestRef.current))
+        if (history.past.length > HISTORY_STEPS) history.past.shift()
+        history.key = ''
+        history.at = 0
+        restore(next)
+        syncHistory()
+      }
+
+      const patchNode = (id, patch) => {
+        const node = (currentSheet()?.nodes ?? []).find((item) => item.id === id)
+        if (node && Object.keys(patch).every((field) => node[field] === patch[field])) return
+        remember(`node:${id}:${Object.keys(patch).join(',')}`)
+        setNodes((list) => list.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+      }
 
       const removeNode = (id) => {
+        remember()
         updateSheet((current) => ({
           ...current,
           nodes: current.nodes.filter((node) => node.id !== id),
@@ -5536,13 +5633,29 @@ window.__ModuleLoader__.load({
         }))
       }
 
-      const removeLink = (id) => setLinks((list) => list.filter((link) => link.id !== id))
+      const removeLink = (id) => {
+        remember()
+        setLinks((list) => list.filter((link) => link.id !== id))
+      }
 
-      const patchLink = (id, patch) => setLinks((list) => list.map((link) => (link.id === id ? { ...link, ...patch } : link)))
+      const patchLink = (id, patch) => {
+        const link = (currentSheet()?.links ?? []).find((item) => item.id === id)
+        if (link && Object.keys(patch).every((field) => link[field] === patch[field])) return
+        remember(`link:${id}:${Object.keys(patch).join(',')}`)
+        setLinks((list) => list.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+      }
 
-      const patchFrame = (id, patch) => setFrames((list) => list.map((frame) => (frame.id === id ? { ...frame, ...patch } : frame)))
+      const patchFrame = (id, patch) => {
+        const frame = (currentSheet()?.frames ?? []).find((item) => item.id === id)
+        if (frame && Object.keys(patch).every((field) => frame[field] === patch[field])) return
+        remember(`frame:${id}:${Object.keys(patch).join(',')}`)
+        setFrames((list) => list.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+      }
 
-      const removeFrame = (id) => setFrames((list) => list.filter((frame) => frame.id !== id))
+      const removeFrame = (id) => {
+        remember()
+        setFrames((list) => list.filter((frame) => frame.id !== id))
+      }
 
       const addFrame = (box) => {
         const frame = {
@@ -5554,6 +5667,7 @@ window.__ModuleLoader__.load({
           label: '',
           color: TOPO_FRAME_COLOR,
         }
+        remember()
         setFrames((list) => list.concat([frame]))
         setSelected({ kind: 'frame', id: frame.id })
         return frame
@@ -5570,16 +5684,17 @@ window.__ModuleLoader__.load({
           deviceId: '',
           note: '',
         }
+        remember()
         setNodes((list) => list.concat([node]))
         setSelected({ kind: 'node', id: node.id })
       }
 
       const addLink = (from, to) => {
         if (!from || !to || from === to) return
-        setLinks((list) => {
-          const exists = list.some((link) => (link.from === from && link.to === to) || (link.from === to && link.to === from))
-          return exists ? list : list.concat([{ id: nextId('l'), from, to, label: '', style: 'solid' }])
-        })
+        const exists = links.some((link) => (link.from === from && link.to === to) || (link.from === to && link.to === from))
+        if (exists) return
+        remember()
+        setLinks((list) => list.concat([{ id: nextId('l'), from, to, label: '', style: 'solid' }]))
       }
 
       const bindDevice = (nodeId, deviceId) => {
@@ -5592,6 +5707,7 @@ window.__ModuleLoader__.load({
       const addSheet = () => {
         const id = nextId('s')
         const name = `${t('拓扑')} ${library.diagrams.length + 1}`
+        remember()
         setLibrary((prev) => ({
           activeId: id,
           diagrams: prev.diagrams.concat([{ id, name, nodes: [], links: [], frames: [] }]),
@@ -5612,6 +5728,7 @@ window.__ModuleLoader__.load({
         if (!sheet) return
         const message = t('确定要删除「${name}」这张拓扑？', { name: sheet.name })
         if (typeof window.confirm === 'function' && !window.confirm(message)) return
+        remember()
         setLibrary((prev) => {
           const rest = prev.diagrams.filter((item) => item.id !== prev.activeId)
           if (rest.length) return { activeId: rest[0].id, diagrams: rest }
@@ -5625,6 +5742,7 @@ window.__ModuleLoader__.load({
       const commitRename = () => {
         if (!renaming) return
         const name = String(renaming.name ?? '').trim() || t('未命名拓扑')
+        remember()
         setLibrary((prev) => ({
           ...prev,
           diagrams: prev.diagrams.map((item) => (item.id === renaming.id ? { ...item, name } : item)),
@@ -5634,6 +5752,7 @@ window.__ModuleLoader__.load({
 
       const clearAll = () => {
         if (typeof window.confirm === 'function' && !window.confirm(t('确定要清空这张拓扑？'))) return
+        remember()
         updateSheet((current) => ({ ...current, nodes: [], links: [], frames: [] }))
         setSelected(null)
         setLinkFrom('')
@@ -5653,11 +5772,17 @@ window.__ModuleLoader__.load({
           dx: (event.clientX - rect.left) / scale - node.x,
           dy: (event.clientY - rect.top) / scale - node.y,
           moved: false,
+          remembered: false,
         }
         dragRef.current = drag
         const onMove = (moveEvent) => {
           const current = dragRef.current
           if (!current) return
+          /* The whole drag is one undo step: snapshot before the first move. */
+          if (!current.remembered) {
+            current.remembered = true
+            remember()
+          }
           const x = (moveEvent.clientX - rect.left) / scale - current.dx
           const y = (moveEvent.clientY - rect.top) / scale - current.dy
           if (Math.abs(x - node.x) > 1 || Math.abs(y - node.y) > 1) current.moved = true
@@ -5715,6 +5840,25 @@ window.__ModuleLoader__.load({
         return () => window.removeEventListener('mousedown', onDown)
       }, [menu])
 
+      /* Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y. The pane only exists while this tool is
+         open, so the terminal keyboard never sees this listener; a focused text
+         field keeps its own undo instead of rewriting the sheet. */
+      useEffect(() => {
+        const onKeyDown = (event) => {
+          if (!(event.ctrlKey || event.metaKey) || event.altKey) return
+          const target = event.target
+          const tag = String(target?.tagName ?? '').toLowerCase()
+          if (tag === 'input' || tag === 'textarea' || tag === 'select' || target?.isContentEditable === true) return
+          const key = String(event.key ?? '').toLowerCase()
+          if (key !== 'z' && key !== 'y') return
+          event.preventDefault?.()
+          if (key === 'z' && !event.shiftKey) undo()
+          else redo()
+        }
+        window.addEventListener('keydown', onKeyDown)
+        return () => window.removeEventListener('keydown', onKeyDown)
+      }, [])
+
       /** Frames sit behind the drawing: drag the box, click it to select. */
       const onFrameDown = (event, frame) => {
         if (event.button !== 0 || frameMode) return
@@ -5729,11 +5873,16 @@ window.__ModuleLoader__.load({
           x0: frame.x,
           y0: frame.y,
           moved: false,
+          remembered: false,
         }
         dragRef.current = drag
         const onMove = (moveEvent) => {
           const current = dragRef.current
           if (!current) return
+          if (!current.remembered) {
+            current.remembered = true
+            remember()
+          }
           const x = (moveEvent.clientX - rect.left) / scale - current.dx
           const y = (moveEvent.clientY - rect.top) / scale - current.dy
           if (Math.abs(x - current.x0) > 1 || Math.abs(y - current.y0) > 1) current.moved = true
@@ -5756,17 +5905,27 @@ window.__ModuleLoader__.load({
 
       /** The little grip at the bottom-right corner resizes the frame. */
       const onFrameResize = (event, frame) => {
+        if (frameMode || event.button !== 0) return
         event.preventDefault()
         event.stopPropagation()
+        /* Resizing an idle frame should also select it, so the inspector and
+           the painted grip follow the drag. */
+        setSelected({ kind: 'frame', id: frame.id })
         const rect = canvasRef.current?.getBoundingClientRect?.() ?? { left: 0, top: 0 }
         const scale = zoom || 1
         const startX = (event.clientX - rect.left) / scale
         const startY = (event.clientY - rect.top) / scale
+        let remembered = false
         const onMove = (moveEvent) => {
           const x = (moveEvent.clientX - rect.left) / scale
           const y = (moveEvent.clientY - rect.top) / scale
           const w = Math.max(80, Math.min(TOPO_W - frame.x, frame.w + (x - startX)))
           const h = Math.max(60, Math.min(TOPO_H - frame.y, frame.h + (y - startY)))
+          if (Math.round(w) === frame.w && Math.round(h) === frame.h) return
+          if (!remembered) {
+            remembered = true
+            remember()
+          }
           setFrames((list) => list.map((item) => (item.id === frame.id
             ? { ...item, w: Math.round(w), h: Math.round(h) }
             : item)))
@@ -5902,6 +6061,22 @@ window.__ModuleLoader__.load({
                 },
                   h('option', { value: 'solid' }, t('实线')),
                   h('option', { value: 'dashed' }, t('虚线')))),
+              h('label', { key: 'color', className: 'nwt-topo-field' },
+                h('span', { className: 'nwt-label' }, t('颜色')),
+                h('input', {
+                  type: 'color',
+                  className: 'nwt-input nwt-topo-link-color',
+                  value: selectedLink.color || TOPO_LINK_COLOR,
+                  onChange: (event) => patchLink(selectedLink.id, { color: event.target.value }),
+                })),
+              selectedLink.color
+                ? h(Btn, {
+                  key: 'reset',
+                  variant: 'ghost',
+                  size: 'small',
+                  onClick: () => patchLink(selectedLink.id, { color: '' }),
+                }, t('恢复默认'))
+                : null,
               h(Btn, {
                 key: 'delete',
                 variant: 'ghost',
@@ -6062,6 +6237,24 @@ window.__ModuleLoader__.load({
               title: t('在画布上拖出一个矩形框，用来圈出一片区域'),
             }, frameMode ? t('取消画框') : t('画框')),
             h(Btn, {
+              key: 'undo',
+              variant: 'ghost',
+              size: 'small',
+              disabled: !canUndo,
+              onClick: undo,
+              title: t('撤销上一步（Ctrl+Z）'),
+              ariaLabel: t('撤销'),
+            }, t('撤销')),
+            h(Btn, {
+              key: 'redo',
+              variant: 'ghost',
+              size: 'small',
+              disabled: !canRedo,
+              onClick: redo,
+              title: t('重做（Ctrl+Shift+Z）'),
+              ariaLabel: t('重做'),
+            }, t('重做')),
+            h(Btn, {
               variant: 'ghost',
               size: 'small',
               onClick: clearAll,
@@ -6143,13 +6336,18 @@ window.__ModuleLoader__.load({
                         onMouseDown: grab,
                       }, frame.label)
                       : null,
-                    active
-                      ? h('div', {
-                        className: 'nwt-topo-frame-grip',
-                        title: t('拖动改变大小'),
-                        onMouseDown: (event) => onFrameResize(event, frame),
-                      })
-                      : null,
+                    /* The corner is always hit-testable, so a frame resizes
+                       without being selected first; only the active one is
+                       painted (opacity, not visibility: it must still hit). */
+                    h('div', {
+                      className: 'nwt-topo-frame-grip',
+                      style: {
+                        opacity: active ? undefined : 0,
+                        pointerEvents: frameMode ? 'none' : 'auto',
+                      },
+                      title: t('拖动改变大小'),
+                      onMouseDown: (event) => onFrameResize(event, frame),
+                    }),
                   )
                 }),
                 draft
@@ -6179,6 +6377,11 @@ window.__ModuleLoader__.load({
                     return h(
                       'g',
                       { key: link.id },
+                      /* A line with its own colour cannot turn brand-coloured
+                         when selected, so the halo says "selected" instead. */
+                      active && link.color
+                        ? h('line', { x1, y1, x2, y2, className: 'nwt-topo-link-halo' })
+                        : null,
                       h('line', {
                         x1, y1, x2, y2,
                         className: 'nwt-topo-link-hit',
@@ -6190,6 +6393,7 @@ window.__ModuleLoader__.load({
                       h('line', {
                         x1, y1, x2, y2,
                         className: cn('nwt-topo-link-line', active && 'nwt-topo-link-line--active'),
+                        style: link.color ? { stroke: link.color } : undefined,
                         strokeDasharray: link.style === 'dashed' ? '8 5' : undefined,
                       }),
                     )
@@ -6205,6 +6409,7 @@ window.__ModuleLoader__.load({
                     style: {
                       left: `${(from.x + to.x) / 2 + TOPO_NODE_W / 2}px`,
                       top: `${(from.y + to.y) / 2 + TOPO_NODE_H / 2}px`,
+                      color: link.color || undefined,
                     },
                     title: link.label,
                   }, link.label)
